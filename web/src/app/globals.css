@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary:       #1A3C34;
+  --color-primary-dark:  #112820;
+  --color-secondary:     #B8860B;
+  --color-neutral:       #708090;
+  --color-bg:            #F8F9FA;
+  --color-surface:       #FFFFFF;
+  --color-text:          #1F2937;
+  --color-muted:         #6B7280;
+  --color-border:        #E5E7EB;
+  --color-sidebar-muted: #A7C0B8;
+  --color-map-available: #22C55E;
+  --color-map-occupied:  #EF4444;
+  --color-map-reserved:  #3B82F6;
+}
+
+@layer base {
+  html, body { height: 100%; }
+  .font-heading { font-family: var(--font-playfair), "Playfair Display", serif; }
+  .font-body    { font-family: var(--font-inter), "Inter", sans-serif; }
+}

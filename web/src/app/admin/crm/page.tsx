@@ -32,6 +32,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function CrmPage() {
   const [plots, setPlots] = useState<PlotDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [plotTab, setPlotTab] = useState<"occupied" | "reserved">("occupied");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState<PlotDto | null>(null);
@@ -52,12 +53,13 @@ export default function CrmPage() {
   });
 
   useEffect(() => {
+    setLoading(true);
     plotsApi
-      .getAll(undefined, "occupied")
+      .getAll(undefined, plotTab)
       .then(setPlots)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [plotTab]);
 
   // Lọc danh sách hồ sơ theo từ khóa và trạng thái
   const filtered = plots.filter((p) => {
@@ -128,6 +130,23 @@ export default function CrmPage() {
     <>
       <AdminNavbar title="Quản lý hồ sơ" subtitle="CRM" />
       <div className="flex-1 overflow-auto p-8">
+
+        {/* Tab switcher: Occupied / Reserved */}
+        <div className="flex items-center gap-1 mb-5 bg-(--color-bg) border border-(--color-border) rounded-lg p-1 w-fit">
+          {(["occupied", "reserved"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => { setPlotTab(t); setSelected(null); setQuery(""); setStatusFilter("all"); }}
+              className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
+                plotTab === t
+                  ? "bg-(--color-primary) text-white shadow-sm"
+                  : "text-(--color-muted) hover:text-(--color-text)"
+              }`}
+            >
+              {t === "occupied" ? "Đang sử dụng" : "Đã đặt trước"}
+            </button>
+          ))}
+        </div>
 
         {/* Toast notification */}
         {toast && (

@@ -1,3 +1,10 @@
+# ── .NET build artifacts ──
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
 # Dependencies
 node_modules/
 web/node_modules/

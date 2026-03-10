@@ -117,9 +117,14 @@ export default function BookPage() {
     [zoom, position]
   );
 
-  // Sidebar: list of available plots
-  const available = plots.filter((p) => p.status === "available");
+  const [zoneFilter, setZoneFilter] = useState("all");
+
+  // Sidebar: list of available plots (filtered by zone)
+  const available = plots.filter(
+    (p) => p.status === "available" && (zoneFilter === "all" || p.zone === zoneFilter)
+  );
   const selectedPlot = plots.find((p) => p.id === selectedPlotId);
+  const zoneIds = Array.from(new Set(zones.map((z) => z.id))).sort();
 
   return (
     <div className="flex flex-col h-full">
@@ -147,7 +152,23 @@ export default function BookPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar: available plots list */}
         <div className="w-[300px] shrink-0 flex flex-col overflow-hidden border-r border-(--color-border)">
-          <div className="flex items-center px-4 h-[52px] bg-(--color-bg) border-b border-(--color-border)">
+          {/* Zone filter */}
+          <div className="flex items-center gap-1.5 px-3 py-2.5 border-b border-(--color-border) flex-wrap bg-(--color-bg)">
+            {["all", ...zoneIds].map((zid) => (
+              <button
+                key={zid}
+                onClick={() => setZoneFilter(zid)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                  zoneFilter === zid
+                    ? "bg-(--color-primary) text-white"
+                    : "bg-(--color-border) text-(--color-muted) hover:bg-(--color-primary)/10"
+                }`}
+              >
+                {zid === "all" ? "Tất cả" : `Khu ${zid}`}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center px-4 h-[40px] bg-(--color-bg) border-b border-(--color-border)">
             <span className="text-sm font-semibold text-(--color-text)">
               {available.length} vị trí còn trống
             </span>

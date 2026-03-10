@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/lib/auth-context";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -23,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${inter.variable} ${playfair.variable} h-full`}>
       <body className="font-body h-full bg-(--color-bg) text-(--color-text) antialiased">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

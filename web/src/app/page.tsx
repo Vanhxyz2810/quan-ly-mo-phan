@@ -138,17 +138,28 @@ export default function LandingPage() {
       <PublicNavbar />
 
       {/* ── Hero ── */}
-      <section className="bg-(--color-primary) flex flex-col items-center justify-center gap-6 py-24 px-10">
-        <h1 className="font-heading text-5xl font-bold text-white text-center leading-tight max-w-2xl">
+      <section className="relative bg-(--color-primary) flex flex-col items-center justify-center gap-6 py-24 px-10 overflow-hidden">
+        {/* Background image */}
+        <Image
+          src="/images/hero-bg.png"
+          alt=""
+          fill
+          className="object-cover opacity-40"
+          priority
+        />
+        {/* Dark overlay gradient */}
+        <div className="absolute inset-0 bg-linear-to-b from-(--color-primary)/50 via-(--color-primary)/40 to-(--color-primary)/70" />
+
+        <h1 className="relative font-heading text-5xl font-bold text-white text-center leading-tight max-w-2xl">
           Tìm kiếm người thân yêu
         </h1>
-        <p className="text-(--color-sidebar-muted) text-lg text-center max-w-xl">
+        <p className="relative text-(--color-sidebar-muted) text-lg text-center max-w-xl">
           Hệ thống tra cứu vị trí mộ phần trực tuyến — nhanh chóng, chính xác,
           tận tâm
         </p>
 
         {/* Search bar */}
-        <div className="flex items-center gap-3 w-[680px] h-[60px] bg-white rounded-full px-5 shadow-lg">
+        <div className="relative flex items-center gap-3 w-[680px] h-[60px] bg-white rounded-full px-5 shadow-lg">
           <Search size={20} className="text-gray-400 shrink-0" />
           <input
             type="text"
@@ -163,8 +174,22 @@ export default function LandingPage() {
           </Link>
         </div>
 
+        {/* Book CTA */}
+        <div className="relative flex items-center gap-4">
+          <div className="w-16 h-px bg-white/20" />
+          <span className="text-(--color-sidebar-muted) text-sm">hoặc</span>
+          <div className="w-16 h-px bg-white/20" />
+        </div>
+        <Link
+          href="/book"
+          className="relative flex items-center gap-2.5 h-[50px] px-7 rounded-full border-2 border-(--color-secondary) text-(--color-secondary) text-sm font-bold hover:bg-(--color-secondary) hover:text-white transition-all"
+        >
+          <MapPin size={17} />
+          Xem vị trí trống &amp; Đặt mộ phần mới
+        </Link>
+
         {/* Inline stats */}
-        <div className="flex items-center gap-12">
+        <div className="relative flex items-center gap-12">
           {[
             "1,248+ mộ phần",
             "98% tra cứu thành công",
@@ -199,8 +224,40 @@ export default function LandingPage() {
         ))}
       </section>
 
+      {/* ── About Us ── */}
+      <section className="bg-white flex items-stretch gap-16 py-20 px-20">
+        <div className="flex-1 w-full relative min-h-[440px] rounded-2xl overflow-hidden shadow-2xl">
+          <Image src="/images/about-usr.png" alt="Không gian An Nghỉ Viên" fill className="object-cover object-center" />
+        </div>
+        <div className="flex-1 flex flex-col gap-6">
+          <span className="inline-flex items-center gap-2 self-start rounded-full bg-[#F0F7F4] px-4 py-1.5 text-xs font-semibold text-(--color-primary)">
+            🌿 Về An Nghỉ Viên
+          </span>
+          <h2 className="font-heading text-4xl font-bold text-(--color-text) leading-snug">
+            Nơi tôn vinh giá trị vĩnh cửu và gìn giữ ký ức gia đình
+          </h2>
+          <p className="text-(--color-muted) text-base leading-relaxed">
+            An Nghỉ Viên không chỉ là một nghĩa trang truyền thống, mà là một không gian văn hóa tâm linh kết hợp công nghệ hiện đại. Chúng tôi kiến tạo một hệ sinh thái an nghỉ xanh mát, tĩnh lặng và trang nghiêm, giúp các thế hệ luôn kết nối với cội nguồn.
+          </p>
+          <div className="flex flex-col gap-4 mt-2">
+            {[
+              "Quy hoạch phong thủy chuẩn mực, hài hòa với thiên nhiên",
+              "Ứng dụng công nghệ thông minh trong quản lý và vận hành",
+              "Đội ngũ chăm sóc tận tâm 24/7, thay mặt gia đình dâng hương, quét dọn",
+            ].map((text, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-(--color-secondary) flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-bold">✓</span>
+                </div>
+                <span className="text-sm font-medium text-(--color-text)">{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── GIS Preview ── */}
-      <section className="bg-white flex items-center gap-16 py-16 px-20">
+      <section className="bg-[#F0F7F4] flex items-center gap-16 py-16 px-20">
         {/* Left – text */}
         <div className="flex-1 flex flex-col gap-5">
           <span className="inline-flex items-center gap-2 self-start rounded-full bg-[#F0F7F4] px-4 py-1.5 text-xs font-semibold text-(--color-primary)">
@@ -250,7 +307,7 @@ export default function LandingPage() {
               fill
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-(--color-primary)/25" />
+            <div className="absolute inset-0 bg-(--color-primary)/10" />
             {/* Map pins */}
             <div className="absolute top-[120px] left-[180px] w-6 h-6 rounded-full bg-(--color-map-available) shadow-lg" />
             <div className="absolute top-[200px] left-[300px] w-6 h-6 rounded-full bg-(--color-map-occupied) shadow-lg" />
@@ -268,7 +325,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Services ── */}
-      <section className="flex flex-col items-center gap-8 py-16 px-16 bg-white">
+      <section id="dich-vu" className="flex flex-col items-center gap-8 py-16 px-16 bg-white">
         <h2 className="font-heading text-3xl font-bold text-(--color-text)">
           Dịch vụ của chúng tôi
         </h2>
@@ -276,43 +333,38 @@ export default function LandingPage() {
           {services.map((svc) => (
             <div
               key={svc.title}
-              className={`flex-1 rounded-xl p-7 flex flex-col gap-4 ${
-                svc.highlight
-                  ? "bg-(--color-primary)"
-                  : "bg-(--color-bg)"
-              }`}
+              className={`flex-1 rounded-xl p-7 flex flex-col gap-4 ${svc.highlight
+                ? "bg-(--color-primary)"
+                : "bg-(--color-bg)"
+                }`}
             >
               <div
-                className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl ${
-                  svc.highlight
-                    ? "bg-white/12"
-                    : "bg-[#F0F7F4]"
-                }`}
+                className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl ${svc.highlight
+                  ? "bg-white/12"
+                  : "bg-[#F0F7F4]"
+                  }`}
               >
                 {svc.icon}
               </div>
               <h3
-                className={`font-heading text-lg font-bold ${
-                  svc.highlight ? "text-white" : "text-(--color-text)"
-                }`}
+                className={`font-heading text-lg font-bold ${svc.highlight ? "text-white" : "text-(--color-text)"
+                  }`}
               >
                 {svc.title}
               </h3>
               <p
-                className={`text-sm leading-relaxed ${
-                  svc.highlight
-                    ? "text-(--color-sidebar-muted)"
-                    : "text-(--color-muted)"
-                }`}
+                className={`text-sm leading-relaxed ${svc.highlight
+                  ? "text-(--color-sidebar-muted)"
+                  : "text-(--color-muted)"
+                  }`}
               >
                 {svc.desc}
               </p>
               <button
-                className={`mt-auto self-start flex items-center gap-2 h-10 px-5 rounded-md text-sm font-semibold transition-opacity hover:opacity-90 ${
-                  svc.highlight
-                    ? "bg-(--color-secondary) text-white"
-                    : "bg-(--color-primary) text-white"
-                }`}
+                className={`mt-auto self-start flex items-center gap-2 h-10 px-5 rounded-md text-sm font-semibold transition-opacity hover:opacity-90 ${svc.highlight
+                  ? "bg-(--color-secondary) text-white"
+                  : "bg-(--color-primary) text-white"
+                  }`}
               >
                 {svc.highlight ? "Đặt dịch vụ" : "Xem dịch vụ"}
               </button>
@@ -396,7 +448,7 @@ export default function LandingPage() {
                   fill
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent" />
               </div>
               <div className="p-5 flex flex-col gap-2">
                 <h3 className="font-heading text-lg font-bold text-white">

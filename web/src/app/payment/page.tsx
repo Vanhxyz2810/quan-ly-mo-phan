@@ -1,15 +1,52 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { PublicNavbar } from "@/components/customer/PublicNavbar";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { QrCode, Wallet, CreditCard, CheckCircle2, ChevronDown } from "lucide-react";
+import { QrCode, Wallet, CreditCard, CheckCircle2 } from "lucide-react";
+import { plotsApi, type PlotDto } from "@/lib/api";
 
-const invoiceItems = [
+const mockInvoiceItems = [
   { label: "Phí duy tu năm 2025", amount: "1,500,000 ₫" },
   { label: "Dịch vụ chăm sóc tháng 01–06", amount: "600,000 ₫" },
   { label: "Phí vệ sinh khu vực", amount: "200,000 ₫" },
 ];
 
 export default function PaymentPage() {
+  const searchParams = useSearchParams();
+  const plotId = searchParams.get("plotId");
+
+  const [plot, setPlot] = useState<PlotDto | null>(null);
+  const [loadingPlot, setLoadingPlot] = useState(false);
+
+  useEffect(() => {
+    if (!plotId) return;
+    setLoadingPlot(true);
+    plotsApi
+      .getById(plotId)
+      .then(setPlot)
+      .catch(() => setPlot(null))
+      .finally(() => setLoadingPlot(false));
+  }, [plotId]);
+
+  // Derived display values
+  const deceasedName = plot?.data?.deceased?.name ?? "Nguyễn Văn An";
+  const location = plot
+    ? `Khu ${plot.zone}, Hàng ${plot.row + 1}, Số ${plot.col + 1}`
+    : "Khu A, Hàng 03, Số 15";
+  const maintenancePackage = plot?.data?.maintenance?.package ?? null;
+  const invoiceItems = maintenancePackage
+    ? [{ label: maintenancePackage, amount: `${plot!.data!.maintenance!.price.toLocaleString("vi-VN")} ₫` }]
+    : mockInvoiceItems;
+  const total = plot?.data?.maintenance?.price
+    ? `${plot.data.maintenance.price.toLocaleString("vi-VN")} ₫`
+    : "2,300,000 ₫";
+  const transferContent = plot
+    ? `${plot.id} ${deceasedName.split(" ").slice(-1)[0].toUpperCase()}`
+    : "INV-2025-0342 NVA";
+
   return (
     <div className="flex flex-col h-full">
       <PublicNavbar />
@@ -31,27 +68,43 @@ export default function PaymentPage() {
 
           {/* Invoice header */}
           <div className="rounded-xl bg-(--color-bg) border border-(--color-border) p-6 flex flex-col gap-4">
-            <div className="flex justify-between text-sm">
-              <div className="flex flex-col gap-1">
-                <span className="text-(--color-muted)">Mã hóa đơn</span>
-                <span className="font-semibold text-(--color-text)">#INV-2025-0342</span>
+            {loadingPlot ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="w-5 h-5 border-2 border-(--color-primary) border-t-transparent rounded-full animate-spin" />
               </div>
-              <div className="flex flex-col gap-1 text-right">
-                <span className="text-(--color-muted)">Ngày lập</span>
-                <span className="font-semibold text-(--color-text)">15/01/2025</span>
-              </div>
-              <div className="flex flex-col gap-1 text-right">
-                <span className="text-(--color-muted)">Hạn thanh toán</span>
-                <span className="font-semibold text-red-500">31/01/2025</span>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex justify-between text-sm">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-(--color-muted)">Mã hóa đơn</span>
+                    <span className="font-semibold text-(--color-text)">
+                      {plot ? `#INV-${plot.id}` : "#INV-2025-0342"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1 text-right">
+                    <span className="text-(--color-muted)">Ngày lập</span>
+                    <span className="font-semibold text-(--color-text)">15/01/2025</span>
+                  </div>
+                  <div className="flex flex-col gap-1 text-right">
+                    <span className="text-(--color-muted)">Hạn thanh toán</span>
+                    <span className="font-semibold text-red-500">
+                      {plot?.data?.maintenance?.expiryDate
+                        ? new Date(plot.data.maintenance.expiryDate).toLocaleDateString("vi-VN")
+                        : "31/01/2025"}
+                    </span>
+                  </div>
+                </div>
 
-            <div className="h-px bg-(--color-border)" />
+                <div className="h-px bg-(--color-border)" />
 
-            <div className="flex flex-col gap-1 text-sm">
-              <span className="text-(--color-muted)">Mộ phần</span>
-              <span className="font-semibold text-(--color-text)">Nguyễn Văn An — Khu A, Hàng 03, Số 15</span>
-            </div>
+                <div className="flex flex-col gap-1 text-sm">
+                  <span className="text-(--color-muted)">Mộ phần</span>
+                  <span className="font-semibold text-(--color-text)">
+                    {deceasedName} — {location}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Line items */}
@@ -71,7 +124,7 @@ export default function PaymentPage() {
             ))}
             <div className="grid grid-cols-[1fr_auto] px-5 py-4 border-t border-(--color-primary)/20 bg-(--color-primary)/5">
               <span className="font-bold text-(--color-text)">Tổng cộng</span>
-              <span className="font-bold text-xl text-(--color-secondary)">2,300,000 ₫</span>
+              <span className="font-bold text-xl text-(--color-secondary)">{total}</span>
             </div>
           </div>
 
@@ -122,8 +175,10 @@ export default function PaymentPage() {
             </div>
 
             <div className="flex flex-col items-center gap-1">
-              <p className="text-xl font-bold text-(--color-secondary)">2,300,000 ₫</p>
-              <p className="text-xs text-(--color-muted)">#INV-2025-0342</p>
+              <p className="text-xl font-bold text-(--color-secondary)">{total}</p>
+              <p className="text-xs text-(--color-muted)">
+                {plot ? plot.id : "#INV-2025-0342"}
+              </p>
             </div>
 
             <div className="w-full rounded-lg bg-white border border-(--color-border) p-4 flex flex-col gap-2 text-sm">
@@ -131,7 +186,7 @@ export default function PaymentPage() {
                 ["Ngân hàng thụ hưởng", "Vietcombank"],
                 ["Số tài khoản", "0123 4567 8901"],
                 ["Chủ tài khoản", "CONG TY QLNT ABC"],
-                ["Nội dung CK", "INV-2025-0342 NVA"],
+                ["Nội dung CK", transferContent],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between">
                   <span className="text-(--color-muted)">{k}</span>

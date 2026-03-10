@@ -125,5 +125,6 @@ export function useGisEdit() {
     canRedo,
     unsavedCount,
     applyChanges,
+    getActions: () => state.history,
   };
 }

@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Eye, EyeOff, Lock, Mail, Phone, User, ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 
 const steps = ["Tài khoản", "Cá nhân", "Xác nhận"];
 
@@ -11,18 +14,65 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // Form state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMatchError, setPasswordMatchError] = useState<string | null>(null);
+  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [relationship, setRelationship] = useState("");
+  const [agreedTerms, setAgreedTerms] = useState(false);
+
+  const { register, loading, error, clearError } = useAuth();
+  const router = useRouter();
+
+  const fullName = `${lastName} ${firstName}`.trim();
+
+  const handleRegister = async () => {
+    clearError();
+    const success = await register(email, password, fullName, phone, "Customer");
+    if (success) {
+      router.push("/");
+    }
+  };
+
+  // Password strength
+  const getPasswordStrength = () => {
+    let score = 0;
+    if (password.length >= 6) score++;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    return score;
+  };
+  const strength = getPasswordStrength();
+  const strengthLabel = ["Yếu", "Yếu", "Trung bình", "Mạnh", "Rất mạnh"][strength];
+  const strengthColor = strength <= 1 ? "bg-red-400" : strength === 2 ? "bg-(--color-secondary)" : "bg-green-500";
+
   return (
     <div className="min-h-screen flex">
       {/* Left panel - branding */}
-      <div className="hidden lg:flex w-[520px] shrink-0 bg-(--color-primary) flex-col justify-between px-14 py-12">
-        <div className="flex items-center gap-3">
+      <div className="hidden lg:flex w-[520px] shrink-0 bg-(--color-primary) flex-col justify-between px-14 py-12 relative overflow-hidden">
+        {/* Background image */}
+        <Image
+          src="/images/register-bg.png"
+          alt=""
+          fill
+          className="object-cover opacity-30"
+        />
+        <div className="absolute inset-0 bg-linear-to-t from-(--color-primary) via-(--color-primary)/70 to-(--color-primary)/40" />
+
+        <div className="relative flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-(--color-secondary) flex items-center justify-center">
             <span className="text-white font-bold text-lg">✦</span>
           </div>
           <span className="font-heading text-white text-xl font-bold tracking-wide">An Nghỉ Viên</span>
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="relative flex flex-col gap-6">
           <div className="w-16 h-1 bg-(--color-secondary)" />
           <h1 className="font-heading text-4xl font-bold text-white leading-snug">
             Tạo tài khoản<br />trong vài bước
@@ -36,20 +86,18 @@ export default function RegisterPage() {
             {steps.map((s, i) => (
               <div key={s} className="flex items-center gap-3">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${
-                    i < step
-                      ? "bg-(--color-secondary) border-(--color-secondary) text-white"
-                      : i === step
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${i < step
+                    ? "bg-(--color-secondary) border-(--color-secondary) text-white"
+                    : i === step
                       ? "bg-white border-white text-(--color-primary)"
                       : "border-white/30 text-white/40"
-                  }`}
+                    }`}
                 >
                   {i < step ? <CheckCircle2 size={16} /> : i + 1}
                 </div>
                 <span
-                  className={`text-sm font-semibold ${
-                    i <= step ? "text-white" : "text-white/40"
-                  }`}
+                  className={`text-sm font-semibold ${i <= step ? "text-white" : "text-white/40"
+                    }`}
                 >
                   {s}
                 </span>
@@ -58,7 +106,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <p className="text-(--color-sidebar-muted)/60 text-xs">
+        <p className="relative text-(--color-sidebar-muted)/60 text-xs">
           © 2025 An Nghỉ Viên. Bảo lưu mọi quyền.
         </p>
       </div>
@@ -91,13 +139,12 @@ export default function RegisterPage() {
             {steps.map((s, i) => (
               <div key={s} className="flex items-center gap-2">
                 <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                    i < step
-                      ? "bg-(--color-secondary) border-(--color-secondary) text-white"
-                      : i === step
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 ${i < step
+                    ? "bg-(--color-secondary) border-(--color-secondary) text-white"
+                    : i === step
                       ? "bg-(--color-primary) border-(--color-primary) text-white"
                       : "border-(--color-border) text-(--color-muted)"
-                  }`}
+                    }`}
                 >
                   {i < step ? "✓" : i + 1}
                 </div>
@@ -109,11 +156,27 @@ export default function RegisterPage() {
             <span className="ml-2 text-sm text-(--color-muted)">{steps[step]}</span>
           </div>
 
+          {/* Error message */}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 flex items-center gap-2">
+              <span className="shrink-0">⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Step 0: Tài khoản */}
           {step === 0 && (
             <form
               className="flex flex-col gap-5"
-              onSubmit={(e) => { e.preventDefault(); setStep(1); }}
+              onSubmit={(e: FormEvent) => {
+                e.preventDefault();
+                if (password !== confirmPassword) {
+                  setPasswordMatchError("Mật khẩu không khớp.");
+                  return;
+                }
+                setPasswordMatchError(null);
+                setStep(1);
+              }}
             >
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold text-(--color-text)">Email</label>
@@ -121,8 +184,11 @@ export default function RegisterPage() {
                   <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--color-muted)" />
                   <input
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@example.com"
-                    className="w-full h-12 rounded-xl border border-(--color-border) bg-white pl-11 pr-4 text-sm text-(--color-text) placeholder-[color:var(--color-muted)] focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
+                    required
+                    className="w-full h-12 rounded-xl border border-(--color-border) bg-white pl-11 pr-4 text-sm text-(--color-text) placeholder-(--color-muted) focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
                   />
                 </div>
               </div>
@@ -133,8 +199,12 @@ export default function RegisterPage() {
                   <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--color-muted)" />
                   <input
                     type={showPassword ? "text" : "password"}
-                    placeholder="Tối thiểu 8 ký tự"
-                    className="w-full h-12 rounded-xl border border-(--color-border) bg-white pl-11 pr-12 text-sm text-(--color-text) placeholder-[color:var(--color-muted)] focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Tối thiểu 6 ký tự"
+                    required
+                    minLength={6}
+                    className="w-full h-12 rounded-xl border border-(--color-border) bg-white pl-11 pr-12 text-sm text-(--color-text) placeholder-(--color-muted) focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
                   />
                   <button
                     type="button"
@@ -145,12 +215,14 @@ export default function RegisterPage() {
                   </button>
                 </div>
                 {/* Password strength */}
-                <div className="flex gap-1 mt-1">
-                  {[1,2,3,4].map((i) => (
-                    <div key={i} className={`h-1 flex-1 rounded-full ${i <= 2 ? "bg-(--color-secondary)" : "bg-(--color-border)"}`} />
-                  ))}
-                  <span className="text-xs text-(--color-secondary) ml-1 font-semibold">Trung bình</span>
-                </div>
+                {password.length > 0 && (
+                  <div className="flex gap-1 mt-1">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className={`h-1 flex-1 rounded-full ${i <= strength ? strengthColor : "bg-(--color-border)"}`} />
+                    ))}
+                    <span className={`text-xs ml-1 font-semibold ${strength <= 1 ? "text-red-400" : strength === 2 ? "text-(--color-secondary)" : "text-green-500"}`}>{strengthLabel}</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -159,8 +231,18 @@ export default function RegisterPage() {
                   <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--color-muted)" />
                   <input
                     type={showConfirm ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (passwordMatchError) setPasswordMatchError(null);
+                    }}
                     placeholder="Nhập lại mật khẩu"
-                    className="w-full h-12 rounded-xl border border-(--color-border) bg-white pl-11 pr-12 text-sm text-(--color-text) placeholder-[color:var(--color-muted)] focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
+                    required
+                    className={`w-full h-12 rounded-xl border bg-white pl-11 pr-12 text-sm text-(--color-text) placeholder-(--color-muted) focus:outline-none focus:ring-2 transition-all ${
+                      passwordMatchError
+                        ? "border-red-400 focus:border-red-400 focus:ring-red-400/10"
+                        : "border-(--color-border) focus:border-(--color-primary) focus:ring-(--color-primary)/10"
+                    }`}
                   />
                   <button
                     type="button"
@@ -170,6 +252,9 @@ export default function RegisterPage() {
                     {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {passwordMatchError && (
+                  <p className="text-xs text-red-500 font-medium mt-0.5">{passwordMatchError}</p>
+                )}
               </div>
 
               <button
@@ -185,7 +270,7 @@ export default function RegisterPage() {
           {step === 1 && (
             <form
               className="flex flex-col gap-5"
-              onSubmit={(e) => { e.preventDefault(); setStep(2); }}
+              onSubmit={(e: FormEvent) => { e.preventDefault(); setStep(2); }}
             >
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
@@ -194,8 +279,11 @@ export default function RegisterPage() {
                     <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--color-muted)" />
                     <input
                       type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
                       placeholder="Nguyễn"
-                      className="w-full h-12 rounded-xl border border-(--color-border) bg-white pl-11 pr-4 text-sm text-(--color-text) placeholder-[color:var(--color-muted)] focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
+                      required
+                      className="w-full h-12 rounded-xl border border-(--color-border) bg-white pl-11 pr-4 text-sm text-(--color-text) placeholder-(--color-muted) focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
                     />
                   </div>
                 </div>
@@ -203,8 +291,11 @@ export default function RegisterPage() {
                   <label className="text-sm font-semibold text-(--color-text)">Tên</label>
                   <input
                     type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
                     placeholder="Văn An"
-                    className="w-full h-12 rounded-xl border border-(--color-border) bg-white px-4 text-sm text-(--color-text) placeholder-[color:var(--color-muted)] focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
+                    required
+                    className="w-full h-12 rounded-xl border border-(--color-border) bg-white px-4 text-sm text-(--color-text) placeholder-(--color-muted) focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
                   />
                 </div>
               </div>
@@ -215,8 +306,10 @@ export default function RegisterPage() {
                   <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-(--color-muted)" />
                   <input
                     type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                     placeholder="0912 345 678"
-                    className="w-full h-12 rounded-xl border border-(--color-border) bg-white pl-11 pr-4 text-sm text-(--color-text) placeholder-[color:var(--color-muted)] focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
+                    className="w-full h-12 rounded-xl border border-(--color-border) bg-white pl-11 pr-4 text-sm text-(--color-text) placeholder-(--color-muted) focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
                   />
                 </div>
               </div>
@@ -225,14 +318,20 @@ export default function RegisterPage() {
                 <label className="text-sm font-semibold text-(--color-text)">Địa chỉ</label>
                 <input
                   type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
                   placeholder="Số nhà, đường, phường/xã, tỉnh/thành"
-                  className="w-full h-12 rounded-xl border border-(--color-border) bg-white px-4 text-sm text-(--color-text) placeholder-[color:var(--color-muted)] focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
+                  className="w-full h-12 rounded-xl border border-(--color-border) bg-white px-4 text-sm text-(--color-text) placeholder-(--color-muted) focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold text-(--color-text)">Mối quan hệ với người mất</label>
-                <select className="w-full h-12 rounded-xl border border-(--color-border) bg-white px-4 text-sm text-(--color-text) focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all appearance-none">
+                <select
+                  value={relationship}
+                  onChange={(e) => setRelationship(e.target.value)}
+                  className="w-full h-12 rounded-xl border border-(--color-border) bg-white px-4 text-sm text-(--color-text) focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all appearance-none"
+                >
                   <option value="">Chọn mối quan hệ...</option>
                   <option>Con cái</option>
                   <option>Vợ / Chồng</option>
@@ -266,10 +365,10 @@ export default function RegisterPage() {
               <div className="rounded-2xl bg-white border border-(--color-border) p-6 flex flex-col gap-4">
                 <h3 className="text-sm font-bold text-(--color-muted) tracking-wider">XÁC NHẬN THÔNG TIN</h3>
                 {[
-                  { label: "Email", value: "nguyenvanan@gmail.com" },
-                  { label: "Họ và tên", value: "Nguyễn Văn An" },
-                  { label: "Số điện thoại", value: "0912 345 678" },
-                  { label: "Quan hệ", value: "Con cái" },
+                  { label: "Email", value: email },
+                  { label: "Họ và tên", value: fullName },
+                  { label: "Số điện thoại", value: phone || "—" },
+                  { label: "Quan hệ", value: relationship || "—" },
                 ].map((r) => (
                   <div key={r.label} className="flex justify-between items-center text-sm border-b border-(--color-border) pb-3 last:border-0 last:pb-0">
                     <span className="text-(--color-muted)">{r.label}</span>
@@ -279,7 +378,12 @@ export default function RegisterPage() {
               </div>
 
               <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" className="mt-0.5 w-4 h-4 rounded accent-[color:var(--color-primary)]" />
+                <input
+                  type="checkbox"
+                  checked={agreedTerms}
+                  onChange={(e) => setAgreedTerms(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded accent-[color:var(--color-primary)]"
+                />
                 <span className="text-sm text-(--color-muted) leading-relaxed">
                   Tôi đồng ý với{" "}
                   <span className="text-(--color-secondary) font-semibold">Điều khoản dịch vụ</span> và{" "}
@@ -297,9 +401,20 @@ export default function RegisterPage() {
                 </button>
                 <button
                   type="button"
-                  className="flex-1 h-12 rounded-xl bg-(--color-secondary) text-white font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all"
+                  disabled={!agreedTerms || loading}
+                  onClick={handleRegister}
+                  className="flex-1 h-12 rounded-xl bg-(--color-secondary) text-white font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <CheckCircle2 size={18} /> Hoàn tất đăng ký
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Đang đăng ký...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={18} /> Hoàn tất đăng ký
+                    </>
+                  )}
                 </button>
               </div>
             </div>

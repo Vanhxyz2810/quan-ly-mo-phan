@@ -1,19 +1,70 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<"customer" | "admin">("customer");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const { login, loading, error, clearError, user } = useAuth();
+  const router = useRouter();
+  // Track whether we're waiting to redirect after a successful login
+  const pendingRedirect = useRef(false);
+
+  // Once user state updates after login, perform the role-aware redirect
+  useEffect(() => {
+    if (pendingRedirect.current && user) {
+      pendingRedirect.current = false;
+      const isAdminOrStaff = user.role === "admin" || user.role === "staff";
+      router.push(isAdminOrStaff ? "/admin" : "/");
+    }
+  }, [user, router]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setValidationError(null);
+    clearError();
+
+    // Basic validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setValidationError("Email không đúng định dạng.");
+      return;
+    }
+    if (password.length < 6) {
+      setValidationError("Mật khẩu phải có ít nhất 6 ký tự.");
+      return;
+    }
+
+    const success = await login(email, password);
+    if (success) {
+      // user state updates asynchronously; the useEffect above handles the redirect
+      pendingRedirect.current = true;
+    }
+  };
 
   return (
     <div className="min-h-screen flex">
       {/* Left panel - branding */}
-      <div className="hidden lg:flex w-[520px] shrink-0 bg-(--color-primary) flex-col justify-between px-14 py-12">
+      <div className="hidden lg:flex w-[520px] shrink-0 bg-(--color-primary) flex-col justify-between px-14 py-12 relative overflow-hidden">
+        {/* Background image */}
+        <Image
+          src="/images/login-bg.png"
+          alt=""
+          fill
+          className="object-cover opacity-30"
+        />
+        <div className="absolute inset-0 bg-linear-to-t from-(--color-primary) via-(--color-primary)/70 to-(--color-primary)/40" />
+
         {/* Logo */}
-        <div className="flex items-center gap-3">
+        <div className="relative flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-(--color-secondary) flex items-center justify-center">
             <span className="text-white font-bold text-lg">✦</span>
           </div>
@@ -21,7 +72,7 @@ export default function LoginPage() {
         </div>
 
         {/* Middle illustration area */}
-        <div className="flex flex-col gap-6">
+        <div className="relative flex flex-col gap-6">
           <div className="w-16 h-1 bg-(--color-secondary)" />
           <h1 className="font-heading text-4xl font-bold text-white leading-snug">
             Hệ thống quản lý<br />nghĩa trang thông minh
@@ -46,7 +97,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-(--color-sidebar-muted)/60 text-xs">
+        <p className="relative text-(--color-sidebar-muted)/60 text-xs">
           © 2025 An Nghỉ Viên. Bảo lưu mọi quyền.
         </p>
       </div>
@@ -64,7 +115,7 @@ export default function LoginPage() {
           </div>
 
           {/* Heading */}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2">
             <h2 className="font-heading text-3xl font-bold text-(--color-text)">Đăng nhập</h2>
             <p className="text-(--color-muted) text-sm">
               Chưa có tài khoản?{" "}
@@ -80,19 +131,26 @@ export default function LoginPage() {
               <button
                 key={r}
                 onClick={() => setRole(r)}
-                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-                  role === r
-                    ? "bg-(--color-primary) text-white shadow-sm"
-                    : "text-(--color-muted) hover:text-(--color-text)"
-                }`}
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${role === r
+                  ? "bg-(--color-primary) text-white shadow-sm"
+                  : "text-(--color-muted) hover:text-(--color-text)"
+                  }`}
               >
                 {r === "customer" ? "Khách hàng" : "Quản trị viên"}
               </button>
             ))}
           </div>
 
+          {/* Validation / API error messages */}
+          {(validationError || error) && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 flex items-center gap-2">
+              <span className="shrink-0">⚠️</span>
+              <span>{validationError ?? error}</span>
+            </div>
+          )}
+
           {/* Form */}
-          <form className="flex flex-col gap-5">
+          <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
             {/* Email */}
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-semibold text-(--color-text)">
@@ -105,7 +163,10 @@ export default function LoginPage() {
                 />
                 <input
                   type={role === "admin" ? "text" : "email"}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder={role === "admin" ? "admin@nghitrang.vn" : "email@example.com"}
+                  required
                   className="w-full h-12 rounded-xl border border-(--color-border) bg-white pl-11 pr-4 text-sm text-(--color-text) placeholder-(--color-muted) focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
                 />
               </div>
@@ -129,7 +190,10 @@ export default function LoginPage() {
                 />
                 <input
                   type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  required
                   className="w-full h-12 rounded-xl border border-(--color-border) bg-white pl-11 pr-12 text-sm text-(--color-text) placeholder-(--color-muted) focus:outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
                 />
                 <button
@@ -154,9 +218,19 @@ export default function LoginPage() {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full h-12 rounded-xl bg-(--color-primary) text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-(--color-primary-dark) active:scale-[0.98] transition-all mt-1"
+              disabled={loading}
+              className="w-full h-12 rounded-xl bg-(--color-primary) text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-(--color-primary-dark) active:scale-[0.98] transition-all mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Đăng nhập <ArrowRight size={16} />
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Đang đăng nhập...
+                </>
+              ) : (
+                <>
+                  Đăng nhập <ArrowRight size={16} />
+                </>
+              )}
             </button>
           </form>
 
@@ -175,11 +249,23 @@ export default function LoginPage() {
             ].map((s) => (
               <button
                 key={s.label}
-                className="h-11 rounded-xl border border-(--color-border) bg-white flex items-center justify-center gap-2 text-sm font-semibold text-(--color-text) hover:bg-(--color-bg) transition-colors"
+                disabled
+                title="Sắp ra mắt"
+                className="h-11 rounded-xl border border-(--color-border) bg-white flex items-center justify-center gap-2 text-sm font-semibold text-(--color-muted) opacity-50 cursor-not-allowed transition-colors"
               >
                 <span className="font-bold">{s.icon}</span> {s.label}
               </button>
             ))}
+          </div>
+
+          {/* Register CTA */}
+          <div className="rounded-xl bg-[#F0F7F4] border border-(--color-primary)/15 p-4 text-center">
+            <p className="text-sm text-(--color-text)">
+              Bạn chưa có tài khoản?{" "}
+              <Link href="/register" className="text-(--color-secondary) font-bold hover:underline">
+                Đăng ký miễn phí →
+              </Link>
+            </p>
           </div>
         </div>
       </div>

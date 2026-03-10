@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CemeteryIQ.Api/CemeteryIQ.Api.csproj" />
+    <Project Path="src/CemeteryIQ.Core/CemeteryIQ.Core.csproj" />
+    <Project Path="src/CemeteryIQ.Infrastructure/CemeteryIQ.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CemeteryIQ.Tests/CemeteryIQ.Tests.csproj" />
+  </Folder>
+</Solution>

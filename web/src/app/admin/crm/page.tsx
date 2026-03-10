@@ -1,164 +1,447 @@
-import { AdminNavbar } from "@/components/admin/AdminNavbar";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Search, Plus, Send } from "lucide-react";
+"use client";
 
-const records = [
-  {
-    id: "A-03-15",
-    name: "Nguyễn Văn An",
-    died: "22/08/2018",
-    plot: "Khu A, Hàng 3",
-    nok: "Nguyễn Thị Hoa · 0812 345 678",
-    fee: "1,500,000 ₫ / năm",
-    status: "warning" as const,
-    statusLabel: "Sắp hạn",
-  },
-  {
-    id: "B-07-22",
-    name: "Trần Thị Bình",
-    died: "15/06/2020",
-    plot: "Khu B, Hàng 7",
-    nok: "Trần Văn Nam · 0901 234 567",
-    fee: "1,500,000 ₫ / năm",
-    status: "danger" as const,
-    statusLabel: "Quá hạn",
-  },
-  {
-    id: "C-01-08",
-    name: "Lê Minh Tuấn",
-    died: "03/01/2015",
-    plot: "Khu C, Hàng 1",
-    nok: "Lê Thị Thu · 0978 123 456",
-    fee: "6,000,000 ₫ / 5 năm",
-    status: "success" as const,
-    statusLabel: "Còn hạn",
-  },
-];
+import { useEffect, useState } from "react";
+import { plotsApi, type PlotDto, type UpdatePlotRequest } from "@/lib/api";
+import { AdminNavbar } from "@/components/admin/AdminNavbar";
+import { Search, X, ChevronRight, User, Phone, Wrench, Save, Send } from "lucide-react";
+
+// Badge trạng thái hợp đồng bảo trì
+function StatusBadge({ status }: { status: string }) {
+  const s = status.toLowerCase();
+  const map: Record<string, string> = {
+    active: "bg-green-100 text-green-700",
+    expiring: "bg-amber-100 text-amber-700",
+    expired: "bg-red-100 text-red-700",
+  };
+  const labels: Record<string, string> = {
+    active: "Còn hạn",
+    expiring: "Sắp hết hạn",
+    expired: "Hết hạn",
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+        map[s] ?? "bg-gray-100 text-gray-600"
+      }`}
+    >
+      {labels[s] ?? status}
+    </span>
+  );
+}
 
 export default function CrmPage() {
+  const [plots, setPlots] = useState<PlotDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selected, setSelected] = useState<PlotDto | null>(null);
+  const [tab, setTab] = useState<"deceased" | "nok" | "maintenance">("deceased");
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState("");
+
+  // Form state cho chỉnh sửa hồ sơ
+  const [form, setForm] = useState({
+    deceasedName: "",
+    birthDate: "",
+    deathDate: "",
+    quote: "",
+    nokName: "",
+    relationship: "",
+    phone: "",
+    email: "",
+  });
+
+  useEffect(() => {
+    plotsApi
+      .getAll(undefined, "occupied")
+      .then(setPlots)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Lọc danh sách hồ sơ theo từ khóa và trạng thái
+  const filtered = plots.filter((p) => {
+    const matchName =
+      !query ||
+      p.data?.deceased?.name?.toLowerCase().includes(query.toLowerCase()) ||
+      p.id.toLowerCase().includes(query.toLowerCase());
+    const matchStatus =
+      statusFilter === "all" || p.data?.maintenance?.status === statusFilter;
+    return matchName && matchStatus;
+  });
+
+  function openDrawer(plot: PlotDto) {
+    setSelected(plot);
+    setTab("deceased");
+    setForm({
+      deceasedName: plot.data?.deceased?.name ?? "",
+      birthDate: plot.data?.deceased?.birthDate ?? "",
+      deathDate: plot.data?.deceased?.deathDate ?? "",
+      quote: plot.data?.deceased?.quote ?? "",
+      nokName: plot.data?.nextOfKin?.name ?? "",
+      relationship: plot.data?.nextOfKin?.relationship ?? "",
+      phone: plot.data?.nextOfKin?.phone ?? "",
+      email: plot.data?.nextOfKin?.email ?? "",
+    });
+  }
+
+  async function handleSave() {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const req: UpdatePlotRequest = {
+        deceased: {
+          name: form.deceasedName,
+          birthDate: form.birthDate,
+          deathDate: form.deathDate,
+          quote: form.quote || null,
+        },
+        nextOfKin: {
+          name: form.nokName,
+          relationship: form.relationship,
+          phone: form.phone,
+          email: form.email,
+        },
+      };
+      const updated = await plotsApi.update(selected.id, req);
+      setPlots((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setSelected(updated);
+      showToast("Lưu thay đổi thành công!");
+    } catch {
+      showToast("Lưu thất bại, vui lòng thử lại.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleSendNotification() {
+    console.log("[NOTIFY] Send email to", selected?.data?.nextOfKin?.email);
+    showToast("Đã gửi email thông báo đến gia đình!");
+  }
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3000);
+  }
+
   return (
     <>
-      <AdminNavbar title="Hồ sơ & CRM" subtitle="Quản lý" />
-      <div className="flex-1 flex overflow-hidden">
-        {/* Table section */}
-        <div className="flex-1 overflow-auto p-7">
-          {/* Toolbar */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex-1 flex items-center gap-2 h-10 px-3 rounded-md border border-(--color-border) bg-(--color-surface)">
-              <Search size={16} className="text-(--color-muted)" />
-              <input
-                type="text"
-                placeholder="Tìm tên, mã mộ..."
-                className="flex-1 text-sm outline-none bg-transparent placeholder:text-(--color-muted)"
-              />
-            </div>
-            <select className="h-10 px-3 rounded-md border border-(--color-border) bg-(--color-surface) text-sm text-(--color-muted) outline-none">
-              <option>Tất cả trạng thái</option>
-            </select>
-            <Button variant="primary" size="md" className="gap-1.5">
-              <Plus size={16} />
-              Thêm hồ sơ
-            </Button>
-          </div>
+      <AdminNavbar title="Quản lý hồ sơ" subtitle="CRM" />
+      <div className="flex-1 overflow-auto p-8">
 
-          {/* Table */}
-          <div className="bg-(--color-surface) rounded-lg border border-(--color-border) overflow-hidden">
-            {/* Header */}
-            <div className="grid grid-cols-[1fr_1.5fr_1fr_1.5fr_1.5fr_1.2fr_1fr] gap-4 px-4 py-2.5 bg-(--color-bg) border-b border-(--color-border)">
-              {["Mã mộ", "Họ tên người mất", "Ngày mất", "Khu / Hàng", "Thân nhân (NOK)", "Phí hiện hành", "Trạng thái"].map(
-                (h) => (
-                  <span key={h} className="text-xs font-semibold text-(--color-muted) uppercase tracking-wide">
-                    {h}
-                  </span>
-                )
-              )}
-            </div>
-            {records.map((r) => (
-              <div
-                key={r.id}
-                className="grid grid-cols-[1fr_1.5fr_1fr_1.5fr_1.5fr_1.2fr_1fr] gap-4 px-4 py-3 border-b border-(--color-border) last:border-0 hover:bg-(--color-bg) transition-colors text-sm cursor-pointer"
-              >
-                <span className="text-(--color-secondary) font-semibold">{r.id}</span>
-                <span className="text-(--color-text) font-medium">{r.name}</span>
-                <span className="text-(--color-muted)">{r.died}</span>
-                <span className="text-(--color-muted)">{r.plot}</span>
-                <span className="text-(--color-muted) truncate">{r.nok}</span>
-                <span className="text-(--color-text)">{r.fee}</span>
-                <Badge variant={r.status}>{r.statusLabel}</Badge>
-              </div>
-            ))}
+        {/* Toast notification */}
+        {toast && (
+          <div className="fixed top-4 right-4 z-50 bg-(--color-primary) text-white px-4 py-3 rounded-lg shadow-lg text-sm font-medium">
+            {toast}
           </div>
+        )}
+
+        {/* Toolbar: search + filter */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="relative flex-1 max-w-sm">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-(--color-muted)"
+            />
+            <input
+              type="text"
+              placeholder="Tìm tên người mất hoặc mã mộ..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full pl-9 pr-4 h-9 text-sm rounded-lg border border-(--color-border) bg-(--color-surface) outline-none focus:ring-2 focus:ring-(--color-primary)/20 text-(--color-text)"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-9 px-3 text-sm rounded-lg border border-(--color-border) bg-(--color-surface) text-(--color-text) outline-none"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active">Còn hạn</option>
+            <option value="expiring">Sắp hết hạn</option>
+            <option value="expired">Hết hạn</option>
+          </select>
+          <span className="text-sm text-(--color-muted)">{filtered.length} hồ sơ</span>
         </div>
 
-        {/* Auto-notify drawer */}
-        <aside className="w-[400px] shrink-0 bg-(--color-surface) border-l border-(--color-border) flex flex-col overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-(--color-border)">
-            <Send size={16} className="text-(--color-primary)" />
-            <h3 className="font-semibold text-(--color-text)">Tự động thông báo</h3>
-          </div>
-          <div className="flex-1 overflow-auto p-5 flex flex-col gap-5">
-            <div>
-              <label className="text-xs font-semibold text-(--color-muted) uppercase tracking-wide block mb-2">
-                Kênh nhận thông báo
-              </label>
-              <div className="flex gap-2">
-                {["SMS", "Email"].map((c) => (
-                  <button
-                    key={c}
-                    className="px-3 h-8 rounded-md border border-(--color-primary) text-(--color-primary) text-sm font-semibold"
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-(--color-muted) uppercase tracking-wide block mb-2">
-                Mẫu thông báo
-              </label>
-              <textarea
-                rows={5}
-                className="w-full rounded-md border border-(--color-border) px-3 py-2 text-sm text-(--color-text) resize-none outline-none focus:border-(--color-primary) bg-(--color-bg)"
-                defaultValue={`Kính gửi {name},\nPhí duy tu mộ phần {plot_id} sẽ hết hạn vào ngày {due_date}. Số tiền: {amount} VNĐ. Vui lòng thanh toán để tiếp tục dịch vụ.`}
-              />
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {["{name}", "{amount}", "{due_date}", "{plot_id}"].map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2 py-0.5 rounded bg-(--color-primary)/10 text-(--color-primary) text-xs font-mono cursor-pointer hover:bg-(--color-primary)/20"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-(--color-muted) uppercase tracking-wide block mb-2">
-                Lịch gửi (ngày trước hạn)
-              </label>
-              <div className="flex gap-2">
-                {["30 ngày", "15 ngày", "7 ngày", "1 ngày"].map((d) => (
-                  <button
-                    key={d}
-                    className="flex-1 h-8 rounded-md border border-(--color-border) text-(--color-text) text-xs font-medium hover:border-(--color-primary) hover:text-(--color-primary) transition-colors"
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* Bảng danh sách hồ sơ */}
+        <div className="bg-(--color-surface) rounded-lg border border-(--color-border) shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden">
+          {/* Header row */}
+          <div className="grid grid-cols-[80px_1fr_110px_140px_1fr_120px_110px_40px] gap-2 px-4 py-2.5 bg-(--color-bg) border-b border-(--color-border) text-xs font-semibold text-(--color-muted) uppercase tracking-wide">
+            <span>Mã mộ</span>
+            <span>Họ tên người mất</span>
+            <span>Ngày mất</span>
+            <span>Vị trí</span>
+            <span>Thân nhân</span>
+            <span>Gói phí</span>
+            <span>Trạng thái</span>
+            <span />
           </div>
 
-          <div className="p-4 border-t border-(--color-border)">
-            <Button variant="primary" className="w-full">
-              Kích hoạt tự động nhắc nhở
-            </Button>
-          </div>
-        </aside>
+          {loading ? (
+            <div className="py-12 text-center text-sm text-(--color-muted)">
+              <div className="w-6 h-6 border-2 border-(--color-primary) border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              Đang tải...
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-12 text-center text-sm text-(--color-muted)">
+              Không có hồ sơ nào
+            </div>
+          ) : (
+            filtered.map((plot) => (
+              <div
+                key={plot.id}
+                onClick={() => openDrawer(plot)}
+                className="grid grid-cols-[80px_1fr_110px_140px_1fr_120px_110px_40px] gap-2 px-4 py-3 border-b border-(--color-border) hover:bg-(--color-bg) cursor-pointer items-center text-sm transition-colors"
+              >
+                <span className="font-mono text-xs font-semibold text-(--color-primary)">
+                  {plot.id}
+                </span>
+                <span className="font-medium text-(--color-text) truncate">
+                  {plot.data?.deceased?.name ?? "—"}
+                </span>
+                <span className="text-(--color-muted)">
+                  {plot.data?.deceased?.deathDate ?? "—"}
+                </span>
+                <span className="text-(--color-muted)">
+                  Khu {plot.zone}, H{plot.row + 1} S{plot.col + 1}
+                </span>
+                <div>
+                  <div className="font-medium text-(--color-text) truncate">
+                    {plot.data?.nextOfKin?.name ?? "—"}
+                  </div>
+                  <div className="text-xs text-(--color-muted)">
+                    {plot.data?.nextOfKin?.relationship ?? ""}
+                  </div>
+                </div>
+                <span className="text-(--color-muted) text-xs">
+                  {plot.data?.maintenance?.package ?? "—"}
+                </span>
+                <StatusBadge status={plot.data?.maintenance?.status ?? ""} />
+                <ChevronRight size={14} className="text-(--color-muted)" />
+              </div>
+            ))
+          )}
+        </div>
       </div>
+
+      {/* Side Drawer chỉnh sửa hồ sơ */}
+      {selected && (
+        <div className="fixed inset-0 z-40 flex justify-end">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/20"
+            onClick={() => setSelected(null)}
+          />
+
+          {/* Drawer panel */}
+          <div className="relative w-[420px] h-full bg-(--color-surface) shadow-2xl flex flex-col">
+            {/* Drawer header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-(--color-border)">
+              <div>
+                <div className="font-semibold text-(--color-text)">{selected.id}</div>
+                <div className="text-xs text-(--color-muted)">
+                  Khu {selected.zone}, Hàng {selected.row + 1}, Số {selected.col + 1}
+                </div>
+              </div>
+              <button
+                onClick={() => setSelected(null)}
+                className="p-1.5 rounded-lg hover:bg-(--color-bg)"
+              >
+                <X size={18} className="text-(--color-muted)" />
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-(--color-border)">
+              {(
+                [
+                  ["deceased", "Người mất", User],
+                  ["nok", "Thân nhân", Phone],
+                  ["maintenance", "Bảo trì", Wrench],
+                ] as const
+              ).map(([key, label, Icon]) => (
+                <button
+                  key={key}
+                  onClick={() => setTab(key)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    tab === key
+                      ? "border-(--color-primary) text-(--color-primary)"
+                      : "border-transparent text-(--color-muted) hover:text-(--color-text)"
+                  }`}
+                >
+                  <Icon size={14} />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab content */}
+            <div className="flex-1 overflow-auto p-5">
+              {tab === "deceased" && (
+                <div className="flex flex-col gap-4">
+                  <Field
+                    label="Họ và tên"
+                    value={form.deceasedName}
+                    onChange={(v) => setForm((f) => ({ ...f, deceasedName: v }))}
+                  />
+                  <Field
+                    label="Ngày sinh"
+                    value={form.birthDate}
+                    onChange={(v) => setForm((f) => ({ ...f, birthDate: v }))}
+                    placeholder="DD/MM/YYYY"
+                  />
+                  <Field
+                    label="Ngày mất"
+                    value={form.deathDate}
+                    onChange={(v) => setForm((f) => ({ ...f, deathDate: v }))}
+                    placeholder="DD/MM/YYYY"
+                  />
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-(--color-muted) uppercase tracking-wide">
+                      Lời tưởng nhớ
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={form.quote}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, quote: e.target.value }))
+                      }
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-(--color-border) bg-(--color-bg) outline-none focus:ring-2 focus:ring-(--color-primary)/20 resize-none text-(--color-text)"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {tab === "nok" && (
+                <div className="flex flex-col gap-4">
+                  <Field
+                    label="Họ và tên thân nhân"
+                    value={form.nokName}
+                    onChange={(v) => setForm((f) => ({ ...f, nokName: v }))}
+                  />
+                  <Field
+                    label="Mối quan hệ"
+                    value={form.relationship}
+                    onChange={(v) => setForm((f) => ({ ...f, relationship: v }))}
+                  />
+                  <Field
+                    label="Số điện thoại"
+                    value={form.phone}
+                    onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
+                  />
+                  <Field
+                    label="Email"
+                    value={form.email}
+                    onChange={(v) => setForm((f) => ({ ...f, email: v }))}
+                    type="email"
+                  />
+                </div>
+              )}
+
+              {tab === "maintenance" && selected.data?.maintenance && (
+                <div className="flex flex-col gap-4">
+                  <InfoRow
+                    label="Gói dịch vụ"
+                    value={selected.data.maintenance.package}
+                  />
+                  <InfoRow
+                    label="Giá"
+                    value={
+                      selected.data.maintenance.price.toLocaleString("vi-VN") + " ₫"
+                    }
+                  />
+                  <InfoRow
+                    label="Ngày hết hạn"
+                    value={selected.data.maintenance.expiryDate}
+                  />
+                  <InfoRow
+                    label="Còn lại"
+                    value={`${selected.data.maintenance.daysLeft} ngày`}
+                  />
+                  <InfoRow
+                    label="Trạng thái"
+                    value={<StatusBadge status={selected.data.maintenance.status} />}
+                  />
+                </div>
+              )}
+
+              {tab === "maintenance" && !selected.data?.maintenance && (
+                <div className="py-8 text-center text-sm text-(--color-muted)">
+                  Chưa có thông tin bảo trì
+                </div>
+              )}
+            </div>
+
+            {/* Drawer footer */}
+            <div className="p-5 border-t border-(--color-border) flex flex-col gap-2">
+              {tab !== "maintenance" && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-(--color-primary) text-white text-sm font-semibold hover:opacity-90 disabled:opacity-60 transition-opacity"
+                >
+                  <Save size={16} />
+                  {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              )}
+              <button
+                onClick={handleSendNotification}
+                className="w-full flex items-center justify-center gap-2 h-10 rounded-lg border border-(--color-border) text-(--color-text) text-sm font-medium hover:bg-(--color-bg) transition-colors"
+              >
+                <Send size={16} />
+                Gửi thông báo email
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
+  );
+}
+
+// Trường nhập liệu dùng chung
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-(--color-muted) uppercase tracking-wide">
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 text-sm rounded-lg border border-(--color-border) bg-(--color-bg) outline-none focus:ring-2 focus:ring-(--color-primary)/20 text-(--color-text)"
+      />
+    </div>
+  );
+}
+
+// Hàng thông tin chỉ đọc dùng trong tab bảo trì
+function InfoRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-(--color-border) last:border-0">
+      <span className="text-sm text-(--color-muted)">{label}</span>
+      <span className="text-sm font-medium text-(--color-text)">{value}</span>
+    </div>
   );
 }

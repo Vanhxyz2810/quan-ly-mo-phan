@@ -1,0 +1,9 @@
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Api\obj\Debug\net10.0\CemeteryIQ.Api.csproj.AssemblyReference.cache
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Api\obj\Debug\net10.0\rpswa.dswa.cache.json
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Api\obj\Debug\net10.0\CemeteryIQ.Api.GeneratedMSBuildEditorConfig.editorconfig
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Api\obj\Debug\net10.0\CemeteryIQ.Api.AssemblyInfoInputs.cache
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Api\obj\Debug\net10.0\CemeteryIQ.Api.AssemblyInfo.cs
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Api\obj\Debug\net10.0\CemeteryIQ.Api.csproj.CoreCompileInputs.cache
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Api\obj\Debug\net10.0\CemeteryIQ.Api.MvcApplicationPartsAssemblyInfo.cs
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Api\obj\Debug\net10.0\CemeteryIQ.Api.MvcApplicationPartsAssemblyInfo.cache
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Api\obj\Debug\net10.0\CemeteryIQ.Api.sourcelink.json

@@ -1,0 +1,13 @@
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\obj\Debug\net10.0\CemeteryIQ.Core.GeneratedMSBuildEditorConfig.editorconfig
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\obj\Debug\net10.0\CemeteryIQ.Core.AssemblyInfoInputs.cache
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\obj\Debug\net10.0\CemeteryIQ.Core.AssemblyInfo.cs
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\obj\Debug\net10.0\CemeteryIQ.Core.csproj.CoreCompileInputs.cache
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\obj\Debug\net10.0\CemeteryIQ.Core.sourcelink.json
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\obj\Debug\net10.0\CemeteryIQ.Core.csproj.AssemblyReference.cache
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\bin\Debug\net10.0\CemeteryIQ.Core.deps.json
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\bin\Debug\net10.0\CemeteryIQ.Core.dll
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\bin\Debug\net10.0\CemeteryIQ.Core.pdb
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\obj\Debug\net10.0\CemeteryIQ.Core.dll
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\obj\Debug\net10.0\refint\CemeteryIQ.Core.dll
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\obj\Debug\net10.0\CemeteryIQ.Core.pdb
+E:\quan-ly-mo-phan\api\src\CemeteryIQ.Core\obj\Debug\net10.0\ref\CemeteryIQ.Core.dll

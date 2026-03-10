@@ -2,9 +2,8 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
-import type { GisMode, PlotStatus, UserRole, Plot } from "@/components/gis/types";
+import type { GisMode, PlotStatus, UserRole, Plot, Zone } from "@/components/gis/types";
 import { CELL_W, CELL_H, CELL_GAP } from "@/components/gis/types";
-import { plots as basePlots, zones, canvasWidth, canvasHeight } from "@/components/gis/mockData";
 import { GisToolbar } from "@/components/gis/GisToolbar";
 import { GisSearch } from "@/components/gis/GisSearch";
 import { GisSidePanel } from "@/components/gis/GisSidePanel";
@@ -16,13 +15,52 @@ import { useGisSelection } from "@/components/gis/hooks/useGisSelection";
 import { useGisSearch } from "@/components/gis/hooks/useGisSearch";
 import { useGisEdit } from "@/components/gis/hooks/useGisEdit";
 import { useGisKeyboard } from "@/components/gis/hooks/useGisKeyboard";
+import { useAuth } from "@/lib/auth-context";
+import { plotsApi, zonesApi } from "@/lib/api";
+import { buildZones, computeCanvasSize, convertPlots } from "@/components/gis/dataUtils";
 
 // Konva must be loaded client-side only (no SSR)
 const GisCanvas = dynamic(() => import("@/components/gis/GisCanvas"), { ssr: false });
 
 export default function GisPage() {
-  // Role — hardcoded as admin for now
-  const userRole: UserRole = "admin";
+  const { user } = useAuth();
+  const userRole: UserRole = (user?.role?.toLowerCase() as UserRole) || "staff";
+
+  // ── API Data State ──
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [basePlots, setBasePlots] = useState<Plot[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [canvasW, setCanvasW] = useState(800);
+  const [canvasH, setCanvasH] = useState(600);
+
+  // Fetch data from API
+  useEffect(() => {
+    async function fetchData() {
+      setDataLoading(true);
+      setDataError(null);
+      try {
+        const [zoneDtos, plotDtos] = await Promise.all([
+          zonesApi.getAll(),
+          plotsApi.getAll(),
+        ]);
+        const builtZones = buildZones(zoneDtos);
+        const convertedPlots = convertPlots(plotDtos);
+        const size = computeCanvasSize(builtZones);
+
+        setZones(builtZones);
+        setBasePlots(convertedPlots);
+        setCanvasW(size.width);
+        setCanvasH(size.height);
+      } catch (err) {
+        console.error("Failed to fetch GIS data:", err);
+        setDataError("Không thể tải dữ liệu bản đồ. Kiểm tra kết nối backend.");
+      } finally {
+        setDataLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   // Mode
   const [mode, setMode] = useState<GisMode>("view");
@@ -58,14 +96,13 @@ export default function GisPage() {
   const edit = useGisEdit();
 
   // Apply edit changes to base plots
-  const plots = useMemo(() => edit.applyChanges(basePlots), [edit.applyChanges]);
+  const plots = useMemo(() => edit.applyChanges(basePlots), [edit.applyChanges, basePlots]);
 
   // Filter plots
   const filteredPlots = useMemo(() => {
     return plots.filter((p) => {
       if (filters.zone && p.zone !== filters.zone) return false;
       if (filters.status && p.status !== filters.status) return false;
-      // Service expired filter
       if (filters.expiryMonth === "expired") {
         if (!p.data?.maintenance || p.data.maintenance.daysLeft > 0) return false;
       }
@@ -76,15 +113,15 @@ export default function GisPage() {
   // Zoom & pan
   const { zoom, position, setPosition, setPositionAnimated, zoomIn, zoomOut, resetZoom, handleWheel, fitToView } = useGisZoom();
 
-  // Auto-fit on first load
+  // Auto-fit on first load (after data loaded)
   const hasFitted = useRef(false);
   useEffect(() => {
-    if (hasFitted.current) return;
+    if (hasFitted.current || dataLoading || zones.length === 0) return;
     if (containerSize.width > 100 && containerSize.height > 100) {
-      fitToView(canvasWidth, canvasHeight, containerSize.width, containerSize.height);
+      fitToView(canvasW, canvasH, containerSize.width, containerSize.height);
       hasFitted.current = true;
     }
-  }, [containerSize, fitToView]);
+  }, [containerSize, fitToView, dataLoading, zones, canvasW, canvasH]);
 
   // Selection
   const { selectedPlotId, selectedPlot, selectPlot, deselectAll } = useGisSelection(filteredPlots);
@@ -107,7 +144,7 @@ export default function GisPage() {
       });
       selectPlot(plotId);
     },
-    [filteredPlots, zoom, containerSize, setPosition, selectPlot]
+    [filteredPlots, zones, zoom, containerSize, setPositionAnimated, selectPlot]
   );
 
   // Keyboard shortcuts
@@ -133,6 +170,80 @@ export default function GisPage() {
     },
     [selectPlot, deselectAll]
   );
+
+  // ── Save edits to API ──
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveEdits = useCallback(async () => {
+    setSaving(true);
+    try {
+      const actions = edit.getActions();
+      for (const action of actions) {
+        switch (action.type) {
+          case "add":
+            await plotsApi.create({
+              zone: action.plot.zone,
+              row: action.plot.row,
+              col: action.plot.col,
+              status: action.plot.status,
+            });
+            break;
+          case "delete":
+            await plotsApi.delete(action.plot.id);
+            break;
+          case "move":
+            await plotsApi.move(action.plotId, action.to.row, action.to.col);
+            break;
+          case "update":
+            await plotsApi.update(action.plotId, {
+              status: action.after.status,
+            });
+            break;
+        }
+      }
+      // Refresh data from API
+      const [plotDtos] = await Promise.all([plotsApi.getAll()]);
+      setBasePlots(convertPlots(plotDtos));
+      edit.clearAll();
+      alert("Đã lưu thay đổi thành công!");
+    } catch (err) {
+      console.error("Failed to save edits:", err);
+      alert("Lỗi khi lưu thay đổi. Vui lòng thử lại.");
+    } finally {
+      setSaving(false);
+    }
+  }, [edit]);
+
+  // ── Loading / Error states ──
+  if (dataLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#2D4A3E]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-3 border-white border-t-transparent rounded-full animate-spin" />
+          <span className="text-white/80 text-sm font-medium">Đang tải bản đồ...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (dataError) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#2D4A3E]">
+        <div className="flex flex-col items-center gap-4 max-w-md text-center">
+          <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <p className="text-white text-sm">{dataError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 rounded-lg bg-white/10 text-white text-sm hover:bg-white/20 transition-colors"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full">
@@ -191,12 +302,19 @@ export default function GisPage() {
             unsavedCount={edit.unsavedCount}
             onUndo={edit.undo}
             onRedo={edit.redo}
-            onSave={() => {
-              alert("Đã lưu thay đổi (mock)");
-              edit.clearAll();
-            }}
+            onSave={handleSaveEdits}
             onCancel={edit.clearAll}
           />
+
+          {/* Saving overlay */}
+          {saving && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl px-6 py-4 flex items-center gap-3 shadow-lg">
+                <div className="w-5 h-5 border-2 border-(--color-primary) border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-medium">Đang lưu thay đổi...</span>
+              </div>
+            </div>
+          )}
 
           {/* Heatmap legend */}
           <GisHeatmapLegend visible={showHeatmap} />
@@ -209,8 +327,8 @@ export default function GisPage() {
             <GisMinimap
               plots={filteredPlots}
               zones={zones}
-              totalWidth={canvasWidth}
-              totalHeight={canvasHeight}
+              totalWidth={canvasW}
+              totalHeight={canvasH}
               viewportX={position.x}
               viewportY={position.y}
               containerWidth={containerSize.width}

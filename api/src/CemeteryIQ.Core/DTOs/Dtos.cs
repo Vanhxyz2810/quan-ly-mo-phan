@@ -29,7 +29,8 @@ public sealed record DeceasedDto(
     string Name,
     string BirthDate,
     string DeathDate,
-    string? Quote);
+    string? Quote,
+    string? PhotoUrl = null);
 
 public sealed record NextOfKinDto(
     string Name,
@@ -92,6 +93,65 @@ public sealed record DashboardStatsDto(
     int ReservedPlots,
     int ExpiringMaintenance,
     int ExpiredMaintenance);
+
+// ── VNPay ──
+public sealed record VNPayCreateRequest(
+    string PlotId,
+    decimal Amount,
+    string OrderInfo);
+
+public sealed record VNPayCreateResponse(
+    string PayUrl,
+    string TxnRef);
+
+public sealed record VNPayVerifyRequest(
+    string PlotId,
+    string SecureHash,
+    Dictionary<string, string> Params);
+
+public sealed record VNPayVerifyResponse(
+    bool Success,
+    string Message);
+
+// ── MoMo ──
+public sealed record MoMoCreateRequest(
+    string PlotId,
+    long Amount,
+    string OrderInfo);
+
+public sealed record MoMoCreateResponse(
+    string PayUrl,
+    string OrderId);
+
+public sealed record MoMoVerifyRequest(
+    string PlotId,
+    Dictionary<string, string> Params);
+
+public sealed record MoMoVerifyResponse(
+    bool Success,
+    string Message);
+
+// ── Service Orders ──
+public sealed record ServiceOrderDto(
+    int Id,
+    string PlotId,
+    string CustomerName,
+    string ServiceType,
+    string ScheduledDate,
+    string? Note,
+    decimal Price,
+    string Status,
+    string CreatedAt);
+
+public sealed record CreateServiceOrderRequest(
+    string PlotId,
+    string ServiceType,
+    string ScheduledDate,
+    string? Note);
+
+// ── Upload ──
+public sealed record UploadPhotoResponse(
+    string Url);
 
 // ── Search ──
 public sealed record SearchResultDto(

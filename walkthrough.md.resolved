@@ -1,0 +1,98 @@
+# CemeteryIQ Backend — Walkthrough
+
+## Tổng quan
+
+Backend C# ASP.NET Core 8 cho hệ thống quản lý nghĩa trang CemeteryIQ đã được xây dựng hoàn chỉnh với Clean Architecture, EF Core + SQL Server, JWT Authentication, và Swagger UI.
+
+## Kiến trúc
+
+```
+api/
+├── CemeteryIQ.sln
+├── src/
+│   ├── CemeteryIQ.Api/          # Web API (Controllers, Middleware, Program.cs)
+│   ├── CemeteryIQ.Core/         # Domain (Entities, DTOs, Interfaces)
+│   └── CemeteryIQ.Infrastructure/ # Data (DbContext, Repositories, Services)
+└── tests/
+    └── CemeteryIQ.Tests/        # xUnit Tests
+```
+
+## Các file đã tạo
+
+### Domain Core
+| File | Mô tả |
+|------|--------|
+| [Zone.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Core/Entities/Zone.cs) | Khu mộ (A, B, C, D) |
+| [Plot.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Core/Entities/Plot.cs) | Ô mộ + PlotStatus enum |
+| [Deceased.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Core/Entities/Deceased.cs) | Người quá cố |
+| [NextOfKin.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Core/Entities/NextOfKin.cs) | Người thân liên hệ |
+| [MaintenancePlan.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Core/Entities/MaintenancePlan.cs) | Gói duy tu + FeeStatus enum |
+| [AppUser.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Core/Entities/AppUser.cs) | User với RBAC (Admin/Staff/Customer) |
+| [Dtos.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Core/DTOs/Dtos.cs) | Records cho API request/response |
+| [Interfaces.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Core/Interfaces/Interfaces.cs) | Repository + Service interfaces |
+
+### Infrastructure
+| File | Mô tả |
+|------|--------|
+| [AppDbContext.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Infrastructure/Data/AppDbContext.cs) | EF Core context + entity config + zone seed |
+| [Repositories.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Infrastructure/Repositories/Repositories.cs) | Plot + Zone repositories |
+| [TokenService.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Infrastructure/Services/TokenService.cs) | JWT token generation |
+| [DataSeeder.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Infrastructure/Services/DataSeeder.cs) | Seed data (replicate mockData.ts) |
+
+### API Layer
+| File | Mô tả |
+|------|--------|
+| [Program.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Api/Program.cs) | DI, JWT, CORS, Swagger, auto-migrate |
+| [AuthController.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Api/Controllers/AuthController.cs) | Login + Register |
+| [ZonesController.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Api/Controllers/ZonesController.cs) | Danh sách khu mộ |
+| [PlotsController.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Api/Controllers/PlotsController.cs) | CRUD ô mộ (Admin only cho write) |
+| [SearchController.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Api/Controllers/SearchController.cs) | Tìm kiếm ô mộ/người quá cố |
+| [MaintenanceController.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Api/Controllers/MaintenanceController.cs) | Phí duy tu |
+| [DashboardController.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Api/Controllers/DashboardController.cs) | Thống kê |
+| [ExceptionHandlingMiddleware.cs](file:///e:/quan-ly-mo-phan/api/src/CemeteryIQ.Api/Middleware/ExceptionHandlingMiddleware.cs) | Global error handling |
+
+## API Endpoints
+
+| Method | Endpoint | Auth | Mô tả |
+|--------|----------|------|--------|
+| POST | `/api/Auth/login` | Public | Đăng nhập |
+| POST | `/api/Auth/register` | Public | Đăng ký |
+| GET | `/api/Zones` | Public | Danh sách khu mộ |
+| GET | `/api/Zones/{id}` | Public | Chi tiết 1 khu |
+| GET | `/api/Plots` | Public | Danh sách ô mộ |
+| GET | `/api/Plots/{id}` | Public | Chi tiết 1 ô |
+| POST | `/api/Plots` | Admin | Thêm ô mộ |
+| PUT | `/api/Plots/{id}` | Admin | Cập nhật ô mộ |
+| PUT | `/api/Plots/{id}/move` | Admin | Di chuyển ô mộ |
+| DELETE | `/api/Plots/{id}` | Admin | Xóa ô mộ |
+| GET | `/api/Search?q=...` | Public | Tìm kiếm |
+| GET | `/api/Maintenance` | Admin/Staff | Phí duy tu |
+| GET | `/api/Dashboard/stats` | Admin/Staff | Thống kê |
+
+## Verification
+
+### ✅ Build thành công
+```
+dotnet build → Build succeeded in 2.9s
+```
+
+### ✅ Swagger UI hoạt động
+Tất cả endpoints hiển thị trên Swagger UI tại `http://localhost:5154/swagger`:
+
+![Swagger UI - API Endpoints](C:/Users/nva2k/.gemini/antigravity/brain/1db194ad-04e3-4cdc-82ad-aa08615a8133/swagger_ui_initial_1772539165189.png)
+
+### ✅ GET /api/Zones → 200 OK
+Trả về 4 zones (A, B, C, D) đúng seed data:
+
+![GET Zones Response](C:/Users/nva2k/.gemini/antigravity/brain/1db194ad-04e3-4cdc-82ad-aa08615a8133/get_zones_response_1772539282319.png)
+
+### 🎬 Demo recording
+![Swagger API Test](C:/Users/nva2k/.gemini/antigravity/brain/1db194ad-04e3-4cdc-82ad-aa08615a8133/swagger_api_test_1772539145741.webp)
+
+## Cách chạy
+
+```bash
+cd e:\quan-ly-mo-phan\api
+dotnet run --project src/CemeteryIQ.Api
+# → http://localhost:5154/swagger
+```

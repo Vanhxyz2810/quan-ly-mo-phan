@@ -43,6 +43,7 @@ export interface DeceasedDto {
   birthDate: string;
   deathDate: string;
   quote: string | null;
+  photoUrl?: string | null;
 }
 
 export interface NextOfKinDto {
@@ -158,6 +159,14 @@ async function fetchApi<T>(
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
+    // Token hết hạn hoặc không hợp lệ → clear auth
+    if (response.status === 401) {
+      clearToken();
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("cemeteryiq_user");
+      }
+      throw new ApiError(401, "Unauthorized", "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
+    }
     const errorMsg = data?.error || data?.title || response.statusText;
     throw new ApiError(response.status, response.statusText, errorMsg);
   }
@@ -264,6 +273,100 @@ export const reserveApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+};
+
+// ── Payment API ──
+export const paymentApi = {
+  createVNPay: (plotId: string, amount: number, orderInfo: string) =>
+    fetchApi<{ payUrl: string; txnRef: string }>("/api/payment/vnpay/create", {
+      method: "POST",
+      body: JSON.stringify({ plotId, amount, orderInfo }),
+    }),
+
+  /** Xác thực chữ ký VNPay phía server và cập nhật trạng thái ô mộ → Occupied */
+  verifyVNPay: (
+    plotId: string,
+    secureHash: string,
+    params: Record<string, string>
+  ) =>
+    fetchApi<{ success: boolean; message: string }>("/api/payment/vnpay/verify", {
+      method: "POST",
+      body: JSON.stringify({ plotId, secureHash, params }),
+    }),
+
+  /** Tạo URL thanh toán MoMo */
+  createMoMo: (plotId: string, amount: number, orderInfo: string) =>
+    fetchApi<{ payUrl: string; orderId: string }>("/api/payment/momo/create", {
+      method: "POST",
+      body: JSON.stringify({ plotId, amount, orderInfo }),
+    }),
+
+  /** Xác thực chữ ký MoMo sau redirect và cập nhật trạng thái ô mộ → Occupied */
+  verifyMoMo: (plotId: string, params: Record<string, string>) =>
+    fetchApi<{ success: boolean; message: string }>("/api/payment/momo/verify", {
+      method: "POST",
+      body: JSON.stringify({ plotId, params }),
+    }),
+};
+
+// ── Service Orders API ──
+
+export interface ServiceOrderDto {
+  id: number;
+  plotId: string;
+  customerName: string;
+  serviceType: string;
+  scheduledDate: string;
+  note: string | null;
+  price: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface ServiceCatalogItem {
+  type: string;
+  label: string;
+  price: number;
+}
+
+export const serviceOrderApi = {
+  create: (data: { plotId: string; serviceType: string; scheduledDate: string; note?: string }) =>
+    fetchApi<ServiceOrderDto>("/api/serviceorders", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getByPlot: (plotId: string) =>
+    fetchApi<ServiceOrderDto[]>(`/api/serviceorders?plotId=${encodeURIComponent(plotId)}`),
+
+  getCatalog: () =>
+    fetchApi<ServiceCatalogItem[]>("/api/serviceorders/catalog"),
+};
+
+// ── Upload API ──
+
+export const uploadApi = {
+  uploadPhoto: async (plotId: string, file: File): Promise<{ url: string }> => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(
+      `${API_BASE}/api/uploads/plots/${encodeURIComponent(plotId)}/photo`,
+      {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw new ApiError(response.status, response.statusText, data?.error || "Upload thất bại");
+    }
+
+    return response.json();
+  },
 };
 
 // ── Renewal API ──

@@ -18,6 +18,7 @@ public class Plot
     public Deceased? Deceased { get; set; }
     public NextOfKin? NextOfKin { get; set; }
     public MaintenancePlan? Maintenance { get; set; }
+    public ICollection<ServiceOrder> ServiceOrders { get; set; } = new List<ServiceOrder>();
 }
 
 public enum PlotStatus

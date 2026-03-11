@@ -10,6 +10,7 @@ public class Deceased
     public string BirthDate { get; set; } = string.Empty;
     public string DeathDate { get; set; } = string.Empty;
     public string? Quote { get; set; }
+    public string? PhotoUrl { get; set; }
 
     // FK
     public string PlotId { get; set; } = string.Empty;

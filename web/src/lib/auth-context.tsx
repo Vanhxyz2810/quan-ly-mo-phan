@@ -11,7 +11,6 @@ import {
 import {
     authApi,
     setToken,
-    getToken,
     clearToken,
     ApiError,
     type AuthResponse,
@@ -79,12 +78,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Hydrate from localStorage on mount
+    // Hydrate from localStorage on mount — kiểm tra JWT expiry
     useEffect(() => {
         const saved = loadUser();
-        if (saved && saved.token) {
-            setToken(saved.token);
-            setUser(saved);
+        if (saved?.token) {
+            try {
+                const payload = JSON.parse(atob(saved.token.split(".")[1]));
+                const isExpired = payload.exp && payload.exp * 1000 < Date.now();
+                if (isExpired) {
+                    clearToken();
+                    removeUser();
+                } else {
+                    setToken(saved.token);
+                    setUser(saved);
+                }
+            } catch {
+                // Token không decode được → vẫn restore (server sẽ verify)
+                setToken(saved.token);
+                setUser(saved);
+            }
         }
         setLoading(false);
     }, []);

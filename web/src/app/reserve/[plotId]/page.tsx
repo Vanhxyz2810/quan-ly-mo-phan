@@ -3,10 +3,10 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, User, Users, Package, CheckCircle, ChevronRight } from "lucide-react";
+import { MapPin, User, Users, Package, ChevronRight } from "lucide-react";
 import { PublicNavbar } from "@/components/customer/PublicNavbar";
 import { useAuth } from "@/lib/auth-context";
-import { plotsApi, reserveApi, type PlotDto, type DeceasedDto, type NextOfKinDto } from "@/lib/api";
+import { plotsApi, reserveApi, ApiError, type PlotDto, type DeceasedDto, type NextOfKinDto } from "@/lib/api";
 
 const PACKAGES = [
   { id: "1 năm", label: "Gói 1 năm", price: "1.500.000 ₫", desc: "Chăm sóc cơ bản, vệ sinh 2 lần/tháng" },
@@ -23,7 +23,6 @@ export default function ReservePage({ params }: { params: Promise<{ plotId: stri
   const [loadingPlot, setLoadingPlot] = useState(true);
   const [step, setStep] = useState(1); // 1=Người mất, 2=Thân nhân, 3=Gói + xác nhận
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Form state
@@ -58,8 +57,12 @@ export default function ReservePage({ params }: { params: Promise<{ plotId: stri
     setError(null);
     try {
       await reserveApi.reserve(plotId, { deceased, nextOfKin: nok, package: pkg });
-      setDone(true);
+      router.push(`/payment?plotId=${encodeURIComponent(plotId)}`);
     } catch (e: unknown) {
+      if (e instanceof ApiError && e.status === 401) {
+        router.push(`/login?returnUrl=${encodeURIComponent(`/reserve/${plotId}`)}`);
+        return;
+      }
       setError(e instanceof Error ? e.message : "Đặt mộ thất bại, vui lòng thử lại.");
     } finally {
       setSubmitting(false);
@@ -72,40 +75,6 @@ export default function ReservePage({ params }: { params: Promise<{ plotId: stri
         <PublicNavbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-(--color-primary) border-t-transparent rounded-full animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
-  // Success screen
-  if (done) {
-    return (
-      <div className="flex flex-col min-h-screen bg-(--color-bg)">
-        <PublicNavbar />
-        <div className="flex-1 flex flex-col items-center justify-center gap-6 px-6 text-center">
-          <CheckCircle size={64} className="text-(--color-secondary)" />
-          <h1 className="font-heading text-3xl font-bold text-(--color-text)">Đặt mộ thành công!</h1>
-          <div className="bg-(--color-surface) rounded-xl border border-(--color-border) px-8 py-5 max-w-md flex flex-col gap-2">
-            <p className="text-(--color-muted) text-sm">Mã mộ đã đặt</p>
-            <p className="font-mono text-xl font-bold text-(--color-primary)">{plotId}</p>
-            <p className="text-(--color-muted) text-sm mt-2">
-              Nhân viên sẽ liên hệ với bạn trong vòng 24 giờ để xác nhận và hướng dẫn thanh toán.
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Link
-              href={`/memorial/${plotId}`}
-              className="px-5 py-2.5 rounded-lg bg-(--color-primary) text-white text-sm font-semibold hover:opacity-90"
-            >
-              Xem trang tưởng niệm
-            </Link>
-            <Link
-              href="/search"
-              className="px-5 py-2.5 rounded-lg border border-(--color-border) text-(--color-text) text-sm font-medium hover:bg-(--color-bg)"
-            >
-              Quay lại tìm kiếm
-            </Link>
-          </div>
         </div>
       </div>
     );
@@ -138,10 +107,10 @@ export default function ReservePage({ params }: { params: Promise<{ plotId: stri
       <div className="bg-white border-b border-(--color-border)">
         <div className="max-w-2xl mx-auto flex items-center gap-0 px-8 py-4">
           {[
-            { n: 1, label: "Người mất", icon: User },
-            { n: 2, label: "Thân nhân", icon: Users },
-            { n: 3, label: "Gói & Xác nhận", icon: Package },
-          ].map(({ n, label, icon: Icon }, i) => (
+            { n: 1, label: "Người mất" },
+            { n: 2, label: "Thân nhân" },
+            { n: 3, label: "Gói & Xác nhận" },
+          ].map(({ n, label }, i) => (
             <div key={n} className="flex items-center">
               <div className="flex items-center gap-2">
                 <div

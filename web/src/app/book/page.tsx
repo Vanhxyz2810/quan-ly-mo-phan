@@ -8,7 +8,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { MapPin, PlusCircle, Info } from "lucide-react";
+import { MapPin, PlusCircle, Info, ArrowLeft, XCircle, Clock } from "lucide-react";
 import { PublicNavbar } from "@/components/customer/PublicNavbar";
 import { zonesApi, plotsApi } from "@/lib/api";
 import {
@@ -150,62 +150,153 @@ export default function BookPage() {
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar: available plots list */}
+        {/* Sidebar */}
         <div className="w-[300px] shrink-0 flex flex-col overflow-hidden border-r border-(--color-border)">
-          {/* Zone filter */}
-          <div className="flex items-center gap-1.5 px-3 py-2.5 border-b border-(--color-border) flex-wrap bg-(--color-bg)">
-            {["all", ...zoneIds].map((zid) => (
+          {selectedPlot ? (
+            /* ── Detail panel khi đã chọn ô ── */
+            <div className="flex flex-col h-full">
+              {/* Back button */}
               <button
-                key={zid}
-                onClick={() => setZoneFilter(zid)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                  zoneFilter === zid
-                    ? "bg-(--color-primary) text-white"
-                    : "bg-(--color-border) text-(--color-muted) hover:bg-(--color-primary)/10"
-                }`}
+                onClick={() => setSelectedPlotId(null)}
+                className="flex items-center gap-1.5 px-4 py-3 border-b border-(--color-border) text-sm text-(--color-muted) hover:text-(--color-text) transition-colors bg-(--color-bg)"
               >
-                {zid === "all" ? "Tất cả" : `Khu ${zid}`}
+                <ArrowLeft size={14} />
+                Quay lại danh sách
               </button>
-            ))}
-          </div>
-          <div className="flex items-center px-4 h-[40px] bg-(--color-bg) border-b border-(--color-border)">
-            <span className="text-sm font-semibold text-(--color-text)">
-              {available.length} vị trí còn trống
-            </span>
-          </div>
 
-          {available.length === 0 && (
-            <div className="flex-1 flex items-center justify-center text-sm text-(--color-muted) p-4 text-center">
-              Đang tải dữ liệu...
-            </div>
-          )}
-
-          <div className="flex-1 overflow-auto">
-            {available.map((p) => {
-              const zone = zones.find((z) => z.id === p.zone);
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => zoomToPlot(p.id)}
-                  className={`flex items-center gap-3 px-4 py-3 border-b border-(--color-border) cursor-pointer transition-colors ${
-                    selectedPlotId === p.id
-                      ? "bg-(--color-primary)/8 border-l-[3px] border-l-(--color-primary)"
-                      : "hover:bg-(--color-bg)"
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-[#3EB370]/15 flex items-center justify-center shrink-0">
-                    <MapPin size={14} className="text-[#3EB370]" />
+              <div className="flex-1 flex flex-col gap-0 overflow-auto">
+                {/* Plot header */}
+                <div className="px-5 py-5 border-b border-(--color-border)">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div
+                      className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                        selectedPlot.status === "available"
+                          ? "bg-[#3EB370]"
+                          : selectedPlot.status === "occupied"
+                          ? "bg-[#E04444]"
+                          : "bg-[#4A90D9]"
+                      }`}
+                    />
+                    <span className="font-mono text-xl font-bold text-(--color-text)">{selectedPlot.id}</span>
                   </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-mono text-sm font-bold text-(--color-text)">{p.id}</span>
-                    <span className="text-xs text-(--color-muted)">
-                      {zone ? `${zone.label} — Hàng ${p.row + 1}, Số ${p.col + 1}` : `Hàng ${p.row + 1}, Số ${p.col + 1}`}
-                    </span>
-                  </div>
+                  <p className="text-sm text-(--color-muted)">
+                    {(() => {
+                      const z = zones.find((z) => z.id === selectedPlot.zone);
+                      return z
+                        ? `${z.label} — Hàng ${selectedPlot.row + 1}, Số ${selectedPlot.col + 1}`
+                        : `Hàng ${selectedPlot.row + 1}, Số ${selectedPlot.col + 1}`;
+                    })()}
+                  </p>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Status info */}
+                <div className="px-5 py-5 flex flex-col gap-4">
+                  {selectedPlot.status === "available" ? (
+                    <>
+                      <div className="rounded-xl bg-[#3EB370]/10 border border-[#3EB370]/25 px-4 py-3 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[#3EB370] shrink-0" />
+                        <span className="text-sm font-semibold text-[#2A8050]">Còn trống — có thể đặt</span>
+                      </div>
+                      <div className="flex flex-col gap-2 text-sm text-(--color-muted)">
+                        {[
+                          ["Kích thước", `${selectedPlot.width || 110} × ${selectedPlot.height || 70} cm`],
+                          ["Khu vực", zones.find((z) => z.id === selectedPlot.zone)?.label ?? selectedPlot.zone],
+                          ["Vị trí", `Hàng ${selectedPlot.row + 1}, Ô số ${selectedPlot.col + 1}`],
+                        ].map(([k, v]) => (
+                          <div key={k} className="flex justify-between items-center py-1.5 border-b border-(--color-border) last:border-0">
+                            <span>{k}</span>
+                            <span className="font-semibold text-(--color-text)">{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : selectedPlot.status === "occupied" ? (
+                    <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-2">
+                      <XCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-red-700">Đã có người sử dụng</p>
+                        <p className="text-xs text-red-500 mt-0.5">Vị trí này không còn trống</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 flex items-start gap-2">
+                      <Clock size={16} className="text-blue-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-blue-700">Đã được đặt trước</p>
+                        <p className="text-xs text-blue-500 mt-0.5">Vị trí này đang chờ xác nhận</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* CTA */}
+              {selectedPlot.status === "available" && (
+                <div className="p-4 border-t border-(--color-border) bg-white">
+                  <Link
+                    href={`/reserve/${selectedPlot.id}`}
+                    className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-(--color-secondary) text-white font-bold text-sm hover:opacity-90 active:scale-[0.98] transition-all"
+                  >
+                    <PlusCircle size={16} />
+                    Đặt mộ phần này
+                  </Link>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* ── Danh sách ô trống ── */
+            <>
+              <div className="flex items-center gap-1.5 px-3 py-2.5 border-b border-(--color-border) flex-wrap bg-(--color-bg)">
+                {["all", ...zoneIds].map((zid) => (
+                  <button
+                    key={zid}
+                    onClick={() => setZoneFilter(zid)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      zoneFilter === zid
+                        ? "bg-(--color-primary) text-white"
+                        : "bg-(--color-border) text-(--color-muted) hover:bg-(--color-primary)/10"
+                    }`}
+                  >
+                    {zid === "all" ? "Tất cả" : `Khu ${zid}`}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center px-4 h-[40px] bg-(--color-bg) border-b border-(--color-border)">
+                <span className="text-sm font-semibold text-(--color-text)">
+                  {available.length} vị trí còn trống
+                </span>
+              </div>
+
+              {available.length === 0 && (
+                <div className="flex-1 flex items-center justify-center text-sm text-(--color-muted) p-4 text-center">
+                  Đang tải dữ liệu...
+                </div>
+              )}
+
+              <div className="flex-1 overflow-auto">
+                {available.map((p) => {
+                  const zone = zones.find((z) => z.id === p.zone);
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => zoomToPlot(p.id)}
+                      className="flex items-center gap-3 px-4 py-3 border-b border-(--color-border) cursor-pointer hover:bg-(--color-bg) transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-[#3EB370]/15 flex items-center justify-center shrink-0">
+                        <MapPin size={14} className="text-[#3EB370]" />
+                      </div>
+                      <div className="flex flex-col gap-0.5 flex-1">
+                        <span className="font-mono text-sm font-bold text-(--color-text)">{p.id}</span>
+                        <span className="text-xs text-(--color-muted)">
+                          {zone ? `${zone.label} — Hàng ${p.row + 1}, Số ${p.col + 1}` : `Hàng ${p.row + 1}, Số ${p.col + 1}`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
 
         {/* GIS Canvas */}
@@ -239,43 +330,19 @@ export default function BookPage() {
             </div>
           )}
 
-          {/* Overlay khi chọn plot */}
+          {/* Label nhỏ trên map khi đã chọn */}
           {selectedPlot && (
-            <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-sm rounded-xl px-5 py-4 flex flex-col gap-2 min-w-[220px]">
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                    selectedPlot.status === "available"
-                      ? "bg-[#3EB370]"
-                      : selectedPlot.status === "occupied"
-                      ? "bg-[#E04444]"
-                      : "bg-[#4A90D9]"
-                  }`}
-                />
-                <p className="text-white text-sm font-bold">{selectedPlot.id}</p>
-              </div>
-              <p className="text-white/65 text-xs">
-                {(() => {
-                  const z = zones.find((z) => z.id === selectedPlot.zone);
-                  return z
-                    ? `${z.label} — Hàng ${selectedPlot.row + 1}, Số ${selectedPlot.col + 1}`
-                    : `Hàng ${selectedPlot.row + 1}, Số ${selectedPlot.col + 1}`;
-                })()}
-              </p>
-
-              {selectedPlot.status === "available" ? (
-                <Link
-                  href={`/reserve/${selectedPlot.id}`}
-                  className="mt-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-(--color-secondary) text-white text-xs font-bold hover:opacity-90 transition-opacity"
-                >
-                  <PlusCircle size={13} />
-                  Đặt mộ phần này
-                </Link>
-              ) : (
-                <p className="text-white/50 text-xs italic mt-1">
-                  {selectedPlot.status === "occupied" ? "Đã có người sử dụng" : "Đã được đặt trước"}
-                </p>
-              )}
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm text-white text-xs px-4 py-2 rounded-full flex items-center gap-2 pointer-events-none">
+              <div
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  selectedPlot.status === "available"
+                    ? "bg-[#3EB370]"
+                    : selectedPlot.status === "occupied"
+                    ? "bg-[#E04444]"
+                    : "bg-[#4A90D9]"
+                }`}
+              />
+              {selectedPlot.id} — xem chi tiết ở thanh bên
             </div>
           )}
         </div>

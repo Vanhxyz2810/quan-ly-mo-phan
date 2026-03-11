@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CemeteryIQ.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+93cf8018417caef2533042619d902f2d500596b6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+96839ab266fba02b10a0859329a7b0b06fdb7564")]
 [assembly: System.Reflection.AssemblyProductAttribute("CemeteryIQ.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CemeteryIQ.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

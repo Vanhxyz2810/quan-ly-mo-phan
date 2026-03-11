@@ -13,6 +13,7 @@ public class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<Deceased> Deceaseds => Set<Deceased>();
     public DbSet<NextOfKin> NextOfKins => Set<NextOfKin>();
     public DbSet<MaintenancePlan> MaintenancePlans => Set<MaintenancePlan>();
+    public DbSet<ServiceOrder> ServiceOrders => Set<ServiceOrder>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -52,6 +53,7 @@ public class AppDbContext : IdentityDbContext<AppUser>
             e.HasKey(d => d.Id);
             e.Property(d => d.PlotId).HasMaxLength(20);
             e.Property(d => d.Name).HasMaxLength(100);
+            e.Property(d => d.PhotoUrl).HasMaxLength(500);
 
             e.HasOne(d => d.Plot)
                 .WithOne(p => p.Deceased)
@@ -95,6 +97,34 @@ public class AppDbContext : IdentityDbContext<AppUser>
 
             e.HasIndex(m => m.PlotId).IsUnique();
             e.HasIndex(m => m.Status); // for heatmap/dashboard
+        });
+
+        // ServiceOrder — many per Plot
+        builder.Entity<ServiceOrder>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.PlotId).HasMaxLength(20);
+            e.Property(s => s.CustomerId).HasMaxLength(450);
+            e.Property(s => s.ServiceType).HasMaxLength(50);
+            e.Property(s => s.ScheduledDate).HasMaxLength(20);
+            e.Property(s => s.Note).HasMaxLength(500);
+            e.Property(s => s.Price).HasColumnType("decimal(18,2)");
+
+            e.Property(s => s.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            e.HasOne(s => s.Plot)
+                .WithMany(p => p.ServiceOrders)
+                .HasForeignKey(s => s.PlotId);
+
+            e.HasOne(s => s.Customer)
+                .WithMany()
+                .HasForeignKey(s => s.CustomerId);
+
+            e.HasIndex(s => s.PlotId);
+            e.HasIndex(s => s.CustomerId);
+            e.HasIndex(s => s.Status);
         });
 
         // Seed zones

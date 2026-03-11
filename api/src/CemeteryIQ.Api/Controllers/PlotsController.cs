@@ -4,6 +4,7 @@ using CemeteryIQ.Core.Interfaces;
 using CemeteryIQ.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QRCoder;
 
 namespace CemeteryIQ.Api.Controllers;
 
@@ -13,11 +14,13 @@ public class PlotsController : ControllerBase
 {
     private readonly IPlotRepository _plotRepo;
     private readonly AppDbContext _db;
+    private readonly IConfiguration _config;
 
-    public PlotsController(IPlotRepository plotRepo, AppDbContext db)
+    public PlotsController(IPlotRepository plotRepo, AppDbContext db, IConfiguration config)
     {
         _plotRepo = plotRepo;
         _db = db;
+        _config = config;
     }
 
     /// <summary>
@@ -212,6 +215,23 @@ public class PlotsController : ControllerBase
     }
 
     /// <summary>
+    /// Tạo QR code PNG cho trang memorial của ô mộ
+    /// </summary>
+    [HttpGet("{id}/qrcode")]
+    public IActionResult GetQrCode(string id)
+    {
+        var baseUrl = _config["App:PublicBaseUrl"] ?? "http://localhost:3000";
+        var memorialUrl = $"{baseUrl}/memorial/{id}";
+
+        using var qrGenerator = new QRCodeGenerator();
+        var qrData = qrGenerator.CreateQrCode(memorialUrl, QRCodeGenerator.ECCLevel.Q);
+        var qrCode = new PngByteQRCode(qrData);
+        var pngBytes = qrCode.GetGraphic(20);
+
+        return File(pngBytes, "image/png", $"qr-{id}.png");
+    }
+
+    /// <summary>
     /// Xóa ô mộ (Admin only)
     /// </summary>
     [HttpDelete("{id}")]
@@ -236,7 +256,7 @@ public class PlotsController : ControllerBase
         p.Height,
         (p.Deceased is not null || p.NextOfKin is not null || p.Maintenance is not null)
             ? new PlotDataDto(
-                p.Deceased is not null ? new DeceasedDto(p.Deceased.Name, p.Deceased.BirthDate, p.Deceased.DeathDate, p.Deceased.Quote) : null,
+                p.Deceased is not null ? new DeceasedDto(p.Deceased.Name, p.Deceased.BirthDate, p.Deceased.DeathDate, p.Deceased.Quote, p.Deceased.PhotoUrl) : null,
                 p.NextOfKin is not null ? new NextOfKinDto(p.NextOfKin.Name, p.NextOfKin.Relationship, p.NextOfKin.Phone, p.NextOfKin.Email) : null,
                 p.Maintenance is not null ? new MaintenanceDto(p.Maintenance.Package, p.Maintenance.Price, p.Maintenance.ExpiryDate, p.Maintenance.DaysLeft, p.Maintenance.Status.ToString().ToLower()) : null)
             : null);

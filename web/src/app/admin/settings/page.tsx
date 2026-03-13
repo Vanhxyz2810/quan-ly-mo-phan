@@ -1,13 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
 import { useAuth } from "@/lib/auth-context";
-import { User, Mail, Phone, Shield, Save } from "lucide-react";
+import { User, Mail, Phone, Shield, Save, Building2, Wrench } from "lucide-react";
+import { serviceOrderApi, type ServiceCatalogItem } from "@/lib/api";
+
+const MAINTENANCE_PACKAGES = [
+  { key: "1 năm", price: 1_500_000, desc: "Bảo trì cơ bản 1 năm" },
+  { key: "5 năm", price: 6_000_000, desc: "Bảo trì trung hạn 5 năm" },
+  { key: "Trọn đời", price: 20_000_000, desc: "Bảo trì trọn đời (50 năm)" },
+];
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const [toast, setToast] = useState("");
+  const [catalog, setCatalog] = useState<ServiceCatalogItem[]>([]);
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+
+  useEffect(() => {
+    serviceOrderApi.getCatalog().then(setCatalog).catch(() => {});
+  }, []);
+
   const [form, setForm] = useState({
     fullName: user?.fullName ?? "",
     phone: "",
@@ -128,6 +142,64 @@ export default function SettingsPage() {
             <Save size={16} />
             Lưu thay đổi
           </button>
+
+          {/* System Info (Admin only) */}
+          {isAdmin && (
+            <>
+              <div className="h-px bg-(--color-border) my-2" />
+
+              <div className="bg-(--color-surface) rounded-xl border border-(--color-border) p-6">
+                <h2 className="font-heading text-base font-bold text-(--color-text) mb-5 flex items-center gap-2">
+                  <Building2 size={18} className="text-(--color-primary)" />
+                  Thông tin nghĩa trang
+                </h2>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {[
+                    ["Tên", "Nghĩa trang Nhân dân TP"],
+                    ["Địa chỉ", "123 Đường Hòa Bình, Quận 1, TP.HCM"],
+                    ["Điện thoại", "(028) 1234 5678"],
+                    ["Email", "info@cemeteryiq.vn"],
+                  ].map(([label, value]) => (
+                    <div key={label}>
+                      <span className="text-xs font-semibold text-(--color-muted) uppercase tracking-wide">{label}</span>
+                      <p className="text-(--color-text) font-medium mt-1">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Service Catalog */}
+              <div className="bg-(--color-surface) rounded-xl border border-(--color-border) p-6">
+                <h2 className="font-heading text-base font-bold text-(--color-text) mb-5 flex items-center gap-2">
+                  <Wrench size={18} className="text-(--color-primary)" />
+                  Bảng giá dịch vụ
+                </h2>
+                {catalog.length > 0 && (
+                  <div className="flex flex-col gap-2 mb-6">
+                    {catalog.map(c => (
+                      <div key={c.type} className="flex items-center justify-between py-2 px-3 rounded-lg bg-(--color-bg)">
+                        <span className="text-sm font-medium text-(--color-text)">{c.label}</span>
+                        <span className="text-sm font-bold text-(--color-secondary)">{c.price.toLocaleString("vi-VN")} ₫</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <h3 className="text-sm font-semibold text-(--color-text) mb-2">Gói bảo trì</h3>
+                <div className="flex flex-col gap-2">
+                  {MAINTENANCE_PACKAGES.map(pkg => (
+                    <div key={pkg.key} className="flex items-center justify-between py-2 px-3 rounded-lg bg-(--color-bg)">
+                      <div>
+                        <span className="text-sm font-medium text-(--color-text)">{pkg.key}</span>
+                        <span className="text-xs text-(--color-muted) ml-2">{pkg.desc}</span>
+                      </div>
+                      <span className="text-sm font-bold text-(--color-secondary)">{pkg.price.toLocaleString("vi-VN")} ₫</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>

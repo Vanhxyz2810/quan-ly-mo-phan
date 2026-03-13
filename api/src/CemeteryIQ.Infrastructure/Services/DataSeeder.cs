@@ -1,5 +1,6 @@
 using CemeteryIQ.Core.Entities;
 using CemeteryIQ.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace CemeteryIQ.Infrastructure.Services;
@@ -123,5 +124,25 @@ public static class DataSeeder
         }
 
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Seed tài khoản admin mặc định: admin@cemeteryiq.vn / admin123
+    /// </summary>
+    public static async Task SeedAdminAsync(UserManager<AppUser> userManager)
+    {
+        const string adminEmail = "admin@cemeteryiq.vn";
+        if (await userManager.FindByEmailAsync(adminEmail) is not null) return;
+
+        var admin = new AppUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            FullName = "Admin",
+            Role = UserRole.Admin,
+            EmailConfirmed = true,
+        };
+
+        await userManager.CreateAsync(admin, "admin123");
     }
 }

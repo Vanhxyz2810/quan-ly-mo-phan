@@ -386,8 +386,8 @@ export default function RegisterPage() {
                 />
                 <span className="text-sm text-(--color-muted) leading-relaxed">
                   Tôi đồng ý với{" "}
-                  <span className="text-(--color-secondary) font-semibold">Điều khoản dịch vụ</span> và{" "}
-                  <span className="text-(--color-secondary) font-semibold">Chính sách bảo mật</span> của An Nghỉ Viên.
+                  <Link href="/terms" className="text-(--color-secondary) font-semibold hover:underline">Điều khoản dịch vụ</Link> và{" "}
+                  <Link href="/privacy" className="text-(--color-secondary) font-semibold hover:underline">Chính sách bảo mật</Link> của An Nghỉ Viên.
                 </span>
               </label>
 

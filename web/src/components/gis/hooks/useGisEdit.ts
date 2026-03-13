@@ -67,6 +67,12 @@ export function useGisEdit() {
     []
   );
 
+  const pushUpdate = useCallback(
+    (plotId: string, before: Partial<Plot>, after: Partial<Plot>) =>
+      dispatch({ type: "PUSH", action: { type: "update", plotId, before, after } }),
+    []
+  );
+
   const undo = useCallback(() => dispatch({ type: "UNDO" }), []);
   const redo = useCallback(() => dispatch({ type: "REDO" }), []);
   const clearAll = useCallback(() => dispatch({ type: "CLEAR" }), []);
@@ -118,6 +124,7 @@ export function useGisEdit() {
     addPlot,
     deletePlot,
     movePlot,
+    pushUpdate,
     undo,
     redo,
     clearAll,

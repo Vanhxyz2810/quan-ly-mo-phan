@@ -5,8 +5,10 @@ import {
   useCallback,
   useRef,
   useEffect,
+  Suspense,
 } from "react";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import { Search, MapPin, Calendar } from "lucide-react";
 import Link from "next/link";
 import { PublicNavbar } from "@/components/customer/PublicNavbar";
@@ -24,8 +26,9 @@ const GisCanvas = dynamic(() => import("@/components/gis/GisCanvas"), {
   ssr: false,
 });
 
-export default function SearchPage() {
-  const [query, setQuery] = useState("");
+function SearchContent() {
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [results, setResults] = useState<SearchResultDto[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -129,6 +132,14 @@ export default function SearchPage() {
     },
     [query, zoomToPlot]
   );
+
+  // Auto-search if ?q= param is present and GIS data is loaded
+  const autoSearchedRef = useRef(false);
+  useEffect(() => {
+    if (autoSearchedRef.current || !query || query.length < 2 || !plots.length) return;
+    autoSearchedRef.current = true;
+    handleSearch();
+  }, [query, plots.length, handleSearch]);
 
   const handleWheel = useCallback(
     (e: any) => {
@@ -319,5 +330,13 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-2 border-(--color-primary) border-t-transparent rounded-full animate-spin" /></div>}>
+      <SearchContent />
+    </Suspense>
   );
 }

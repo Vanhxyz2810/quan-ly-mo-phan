@@ -114,12 +114,15 @@ function PlotRectInner({ plot, x, y, isSelected, zoom, onClick }: Props) {
     );
   }
 
+  /* ── Only show deceased data when not "available" ── */
+  const deceased = plot.status !== "available" ? plot.data?.deceased : undefined;
+
   /* ── Tooltip content ── */
   const tooltipLines: string[] = [];
-  if (plot.data?.deceased) {
+  if (deceased) {
     tooltipLines.push(plot.id);
-    tooltipLines.push(plot.data.deceased.name);
-    tooltipLines.push(`✝ ${plot.data.deceased.deathDate}`);
+    tooltipLines.push(deceased.name);
+    if (deceased.deathDate) tooltipLines.push(`✝ ${deceased.deathDate}`);
   } else {
     tooltipLines.push(plot.id);
     tooltipLines.push(STATUS_LABEL[plot.status]);
@@ -240,9 +243,9 @@ function PlotRectInner({ plot, x, y, isSelected, zoom, onClick }: Props) {
       {showFullDetail && (
         <>
           {/* Deceased name or status text */}
-          {plot.data?.deceased ? (
+          {deceased ? (
             <Text
-              text={plot.data.deceased.name}
+              text={deceased.name}
               x={6}
               y={28}
               width={plot.width - 12}
@@ -264,7 +267,7 @@ function PlotRectInner({ plot, x, y, isSelected, zoom, onClick }: Props) {
           )}
 
           {/* Fee warning icon (bottom-right) */}
-          {plot.data?.maintenance?.status === "expired" && (
+          {plot.status !== "available" && plot.data?.maintenance?.status === "expired" && (
             <>
               <Circle x={plot.width - 12} y={plot.height - 12} radius={7} fill="#FEE2E2" />
               <Text
@@ -277,7 +280,7 @@ function PlotRectInner({ plot, x, y, isSelected, zoom, onClick }: Props) {
               />
             </>
           )}
-          {plot.data?.maintenance?.status === "expiring" && (
+          {plot.status !== "available" && plot.data?.maintenance?.status === "expiring" && (
             <>
               <Circle x={plot.width - 12} y={plot.height - 12} radius={7} fill="#FEF3C7" />
               <Text
@@ -302,9 +305,11 @@ function PlotRectInner({ plot, x, y, isSelected, zoom, onClick }: Props) {
           />
 
           {/* Death year (for occupied) */}
-          {plot.data?.deceased && (
+          {deceased?.deathDate && (
             <Text
-              text={`${plot.data.deceased.deathDate.split("/")[2]}`}
+              text={deceased.deathDate.includes("/")
+                ? deceased.deathDate.split("/").pop() ?? ""
+                : deceased.deathDate}
               x={6}
               y={plot.height - 18}
               width={plot.width - 12}

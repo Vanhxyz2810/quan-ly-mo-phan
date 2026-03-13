@@ -112,6 +112,17 @@ export default function MemorialPage({ params }: { params: Promise<{ id: string 
     img.src = "data:image/svg+xml;base64," + btoa(decodeURIComponent(encodeURIComponent(svgData)));
   }, [id]);
 
+  // Guestbook
+  const [guestMessage, setGuestMessage] = useState("");
+  const [guestSent, setGuestSent] = useState(false);
+
+  const handleGuestSend = () => {
+    if (!guestMessage.trim()) return;
+    setGuestSent(true);
+    setGuestMessage("");
+    setTimeout(() => setGuestSent(false), 3000);
+  };
+
   const closeModal = () => {
     setServiceModal(null);
     setServiceDate("");
@@ -250,13 +261,23 @@ export default function MemorialPage({ params }: { params: Promise<{ id: string 
             <div className="flex gap-2">
               <input
                 type="text"
+                value={guestMessage}
+                onChange={(e) => setGuestMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleGuestSend()}
                 placeholder="Viết lời tưởng nhớ..."
                 className="flex-1 px-3 py-2 text-sm rounded-lg border border-(--color-border) bg-(--color-bg) outline-none"
               />
-              <button className="px-4 py-2 rounded-lg bg-(--color-primary) text-white text-sm font-semibold hover:opacity-90 cursor-pointer">
+              <button
+                onClick={handleGuestSend}
+                disabled={!guestMessage.trim()}
+                className="px-4 py-2 rounded-lg bg-(--color-primary) text-white text-sm font-semibold hover:opacity-90 cursor-pointer disabled:opacity-40"
+              >
                 Gửi
               </button>
             </div>
+            {guestSent && (
+              <p className="text-xs text-green-600 mt-2">Lời tưởng nhớ đã được ghi nhận. Cảm ơn bạn.</p>
+            )}
           </div>
         </div>
 

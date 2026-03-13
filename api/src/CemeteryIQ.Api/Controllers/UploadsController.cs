@@ -62,12 +62,7 @@ public class UploadsController : ControllerBase
         var url = result.SecureUrl.ToString();
 
         // Update Deceased.PhotoUrl
-        var deceased = await _db.Deceaseds.FindAsync(plotId);
-        if (deceased is null)
-        {
-            // Find by PlotId
-            deceased = _db.Deceaseds.FirstOrDefault(d => d.PlotId == plotId);
-        }
+        var deceased = _db.Deceaseds.FirstOrDefault(d => d.PlotId == plotId);
 
         if (deceased is not null)
         {

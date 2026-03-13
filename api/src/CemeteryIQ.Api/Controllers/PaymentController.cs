@@ -131,7 +131,7 @@ public class PaymentController : ControllerBase
         if (isSuccess && !string.IsNullOrEmpty(request.PlotId))
         {
             var plot = await _db.Plots.FindAsync(request.PlotId);
-            if (plot is not null && plot.Status == PlotStatus.Reserved)
+            if (plot is not null && plot.Status != PlotStatus.Occupied)
             {
                 plot.Status = PlotStatus.Occupied;
                 await _db.SaveChangesAsync();
@@ -182,7 +182,7 @@ public class PaymentController : ControllerBase
         if (responseCode == "00" && !string.IsNullOrEmpty(plotId))
         {
             var plot = await _db.Plots.FindAsync(plotId);
-            if (plot is not null && plot.Status == PlotStatus.Reserved)
+            if (plot is not null && plot.Status != PlotStatus.Occupied)
             {
                 plot.Status = PlotStatus.Occupied;
                 await _db.SaveChangesAsync();
@@ -300,7 +300,7 @@ public class PaymentController : ControllerBase
         if (isSuccess && !string.IsNullOrEmpty(request.PlotId))
         {
             var plot = await _db.Plots.FindAsync(request.PlotId);
-            if (plot is not null && plot.Status == PlotStatus.Reserved)
+            if (plot is not null && plot.Status != PlotStatus.Occupied)
             {
                 plot.Status = PlotStatus.Occupied;
                 await _db.SaveChangesAsync();
@@ -344,7 +344,7 @@ public class PaymentController : ControllerBase
             if (!string.IsNullOrEmpty(plotId))
             {
                 var plot = await _db.Plots.FindAsync(plotId);
-                if (plot is not null && plot.Status == PlotStatus.Reserved)
+                if (plot is not null && plot.Status != PlotStatus.Occupied)
                 {
                     plot.Status = PlotStatus.Occupied;
                     await _db.SaveChangesAsync();

@@ -1,12 +1,13 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, User, Users, Package, ChevronRight } from "lucide-react";
+import Image from "next/image";
+import { MapPin, User, Users, Package, ChevronRight, Camera } from "lucide-react";
 import { PublicNavbar } from "@/components/customer/PublicNavbar";
 import { useAuth } from "@/lib/auth-context";
-import { plotsApi, reserveApi, ApiError, type PlotDto, type DeceasedDto, type NextOfKinDto } from "@/lib/api";
+import { plotsApi, reserveApi, uploadApi, ApiError, type PlotDto, type DeceasedDto, type NextOfKinDto } from "@/lib/api";
 
 const PACKAGES = [
   { id: "1 năm", label: "Gói 1 năm", price: "1.500.000 ₫", desc: "Chăm sóc cơ bản, vệ sinh 2 lần/tháng" },
@@ -29,6 +30,9 @@ export default function ReservePage({ params }: { params: Promise<{ plotId: stri
   const [deceased, setDeceased] = useState<DeceasedDto>({ name: "", birthDate: "", deathDate: "", quote: null });
   const [nok, setNok] = useState<NextOfKinDto>({ name: "", relationship: "", phone: "", email: "" });
   const [pkg, setPkg] = useState("1 năm");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -52,11 +56,24 @@ export default function ReservePage({ params }: { params: Promise<{ plotId: stri
       .finally(() => setLoadingPlot(false));
   }, [plotId]);
 
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = ev => setPhotoPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
   async function handleSubmit() {
     setSubmitting(true);
     setError(null);
     try {
       await reserveApi.reserve(plotId, { deceased, nextOfKin: nok, package: pkg });
+      // Upload ảnh nếu có (không block flow nếu lỗi)
+      if (photoFile) {
+        try { await uploadApi.uploadPhoto(plotId, photoFile); } catch { /* ignore */ }
+      }
       router.push(`/payment?plotId=${encodeURIComponent(plotId)}`);
     } catch (e: unknown) {
       if (e instanceof ApiError && e.status === 401) {
@@ -169,6 +186,51 @@ export default function ReservePage({ params }: { params: Promise<{ plotId: stri
                   className="px-3 py-2 text-sm rounded-lg border border-(--color-border) bg-(--color-bg) outline-none focus:border-(--color-primary) resize-none"
                 />
               </div>
+
+              {/* Photo upload */}
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-(--color-text) flex items-center gap-1.5">
+                  <Camera size={14} className="text-(--color-muted)" />
+                  Ảnh người mất (tùy chọn)
+                </label>
+                <div className="flex items-center gap-4">
+                  {photoPreview ? (
+                    <div className="relative">
+                      <Image
+                        src={photoPreview}
+                        alt="Preview"
+                        width={72}
+                        height={72}
+                        className="w-[72px] h-[72px] rounded-lg object-cover border border-(--color-border)"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setPhotoFile(null); setPhotoPreview(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                        className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-[72px] h-[72px] rounded-lg border-2 border-dashed border-(--color-border) flex flex-col items-center justify-center gap-1 hover:border-(--color-primary) cursor-pointer transition-colors"
+                    >
+                      <Camera size={18} className="text-(--color-muted)" />
+                      <span className="text-[10px] text-(--color-muted)">Chọn ảnh</span>
+                    </button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handlePhotoSelect}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-(--color-muted)">JPG, PNG hoặc WebP. Tối đa 10MB.</p>
+                </div>
+              </div>
             </div>
             <div className="flex justify-end">
               <button
@@ -252,6 +314,12 @@ export default function ReservePage({ params }: { params: Promise<{ plotId: stri
             {/* Summary */}
             <div className="bg-(--color-surface) rounded-xl border border-(--color-border) p-6 flex flex-col gap-3">
               <h3 className="font-semibold text-(--color-text) text-sm">Xác nhận thông tin</h3>
+              {photoPreview && (
+                <div className="flex items-center gap-3 mb-2">
+                  <Image src={photoPreview} alt="Ảnh" width={48} height={48} className="w-12 h-12 rounded-lg object-cover border border-(--color-border)" />
+                  <span className="text-xs text-(--color-muted)">Ảnh sẽ được tải lên cùng hồ sơ</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                 {[
                   ["Ô mộ", `${plotId} — ${zone}`],

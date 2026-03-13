@@ -330,14 +330,23 @@ export interface ServiceCatalogItem {
 }
 
 export const serviceOrderApi = {
+  getAll: () =>
+    fetchApi<ServiceOrderDto[]>("/api/serviceorders"),
+
+  getByPlot: (plotId: string) =>
+    fetchApi<ServiceOrderDto[]>(`/api/serviceorders?plotId=${encodeURIComponent(plotId)}`),
+
   create: (data: { plotId: string; serviceType: string; scheduledDate: string; note?: string }) =>
     fetchApi<ServiceOrderDto>("/api/serviceorders", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
-  getByPlot: (plotId: string) =>
-    fetchApi<ServiceOrderDto[]>(`/api/serviceorders?plotId=${encodeURIComponent(plotId)}`),
+  updateStatus: (id: number, status: string) =>
+    fetchApi<ServiceOrderDto>(`/api/serviceorders/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
 
   getCatalog: () =>
     fetchApi<ServiceCatalogItem[]>("/api/serviceorders/catalog"),

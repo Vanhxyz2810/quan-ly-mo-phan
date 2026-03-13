@@ -209,7 +209,8 @@ public class PlotsController : ControllerBase
         plot.Maintenance.DaysLeft = (int)(expiry - DateTime.Now).TotalDays;
         plot.Maintenance.Status = FeeStatus.Active;
 
-        plot.Status = PlotStatus.Reserved;
+        // KHÔNG đổi status ở đây — chỉ lưu data.
+        // Status sẽ đổi thành Reserved/Occupied sau khi thanh toán thành công.
         await _plotRepo.UpdateAsync(plot);
         return Ok(MapToDto(plot));
     }

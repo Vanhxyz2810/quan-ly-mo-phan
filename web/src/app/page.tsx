@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Search,
@@ -133,6 +137,9 @@ const testimonials = [
 /* ───── Page ───── */
 
 export default function LandingPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+
   return (
     <div className="flex flex-col min-h-full">
       <PublicNavbar />
@@ -159,20 +166,25 @@ export default function LandingPage() {
         </p>
 
         {/* Search bar */}
-        <div className="relative flex items-center gap-3 w-[680px] h-[60px] bg-white rounded-full px-5 shadow-lg">
+        <form
+          onSubmit={(e) => { e.preventDefault(); router.push(`/search${searchQuery.trim() ? `?q=${encodeURIComponent(searchQuery.trim())}` : ""}`); }}
+          className="relative flex items-center gap-3 w-[680px] h-[60px] bg-white rounded-full px-5 shadow-lg"
+        >
           <Search size={20} className="text-gray-400 shrink-0" />
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Nhập tên người mất để tìm kiếm..."
             className="flex-1 text-base outline-none placeholder:text-gray-400 text-(--color-text)"
           />
-          <Link
-            href="/search"
+          <button
+            type="submit"
             className="flex items-center gap-2 px-5 h-11 rounded-full bg-(--color-secondary) text-white text-sm font-bold hover:opacity-90 transition-opacity"
           >
             Tìm kiếm <ArrowRight size={16} />
-          </Link>
-        </div>
+          </button>
+        </form>
 
         {/* Book CTA */}
         <div className="relative flex items-center gap-4">
@@ -315,7 +327,7 @@ export default function LandingPage() {
           </div>
 
           <Link
-            href="/admin/gis"
+            href="/book"
             className="flex items-center gap-2 h-12 px-7 rounded-lg bg-(--color-primary) text-white text-[15px] font-semibold hover:opacity-90 transition-opacity"
           >
             <Map size={18} className="text-(--color-secondary)" />
@@ -360,14 +372,15 @@ export default function LandingPage() {
               >
                 {svc.desc}
               </p>
-              <button
+              <Link
+                href="/search"
                 className={`mt-auto self-start flex items-center gap-2 h-10 px-5 rounded-md text-sm font-semibold transition-opacity hover:opacity-90 ${svc.highlight
                   ? "bg-(--color-secondary) text-white"
                   : "bg-(--color-primary) text-white"
                   }`}
               >
                 {svc.highlight ? "Đặt dịch vụ" : "Xem dịch vụ"}
-              </button>
+              </Link>
             </div>
           ))}
         </div>
@@ -649,17 +662,17 @@ export default function LandingPage() {
             <div className="flex flex-col gap-4">
               <h4 className="text-sm font-bold text-white">Dịch vụ</h4>
               {[
-                "Chăm sóc mộ phần",
-                "Dâng hương thay",
-                "Cải táng / Dời cát",
-                "Cúng giỗ định kỳ",
+                { label: "Chăm sóc mộ phần", href: "/search" },
+                { label: "Dâng hương thay", href: "/search" },
+                { label: "Đặt mộ phần", href: "/book" },
+                { label: "Tra cứu mộ phần", href: "/search" },
               ].map((l) => (
                 <Link
-                  key={l}
-                  href="#"
+                  key={l.label}
+                  href={l.href}
                   className="text-sm text-(--color-sidebar-muted) hover:text-white transition-colors"
                 >
-                  {l}
+                  {l.label}
                 </Link>
               ))}
             </div>
@@ -667,17 +680,17 @@ export default function LandingPage() {
             <div className="flex flex-col gap-4">
               <h4 className="text-sm font-bold text-white">Hỗ trợ</h4>
               {[
-                "Hướng dẫn sử dụng",
-                "Câu hỏi thường gặp",
-                "Liên hệ hỗ trợ",
-                "Chính sách bảo mật",
+                { label: "Đăng nhập", href: "/login" },
+                { label: "Đăng ký tài khoản", href: "/register" },
+                { label: "Điều khoản dịch vụ", href: "/terms" },
+                { label: "Chính sách bảo mật", href: "/privacy" },
               ].map((l) => (
                 <Link
-                  key={l}
-                  href="#"
+                  key={l.label}
+                  href={l.href}
                   className="text-sm text-(--color-sidebar-muted) hover:text-white transition-colors"
                 >
-                  {l}
+                  {l.label}
                 </Link>
               ))}
             </div>

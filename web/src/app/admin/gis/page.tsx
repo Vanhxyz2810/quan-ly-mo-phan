@@ -171,6 +171,43 @@ export default function GisPage() {
     [selectPlot, deselectAll]
   );
 
+  // ── Edit mode handlers ──
+  const handleEmptyCellClick = useCallback(
+    (zoneId: string, row: number, col: number) => {
+      if (mode !== "edit" || userRole !== "admin") return;
+      const newPlot: Plot = {
+        id: `new-${zoneId}-${row}-${col}-${Date.now()}`,
+        zone: zoneId,
+        row,
+        col,
+        status: "available",
+        width: CELL_W,
+        height: CELL_H,
+      };
+      edit.addPlot(newPlot);
+    },
+    [mode, userRole, edit]
+  );
+
+  const handleDeletePlot = useCallback(
+    (plot: Plot) => {
+      if (mode !== "edit" || userRole !== "admin") return;
+      edit.deletePlot(plot);
+      deselectAll();
+    },
+    [mode, userRole, edit, deselectAll]
+  );
+
+  const handleChangeStatus = useCallback(
+    (plotId: string, status: PlotStatus) => {
+      if (mode !== "edit" || userRole !== "admin") return;
+      const plot = plots.find((p) => p.id === plotId);
+      if (!plot) return;
+      edit.pushUpdate(plotId, { status: plot.status }, { status });
+    },
+    [mode, userRole, plots, edit]
+  );
+
   // ── Save edits to API ──
   const [saving, setSaving] = useState(false);
 
@@ -214,6 +251,22 @@ export default function GisPage() {
     }
   }, [edit]);
 
+  // ── Save plot info (deceased, nextOfKin) directly to API ──
+  const handleSavePlotInfo = useCallback(async (plotId: string, data: {
+    status?: string;
+    deceased?: { name: string; birthDate: string; deathDate: string };
+    nextOfKin?: { name: string; relationship: string; phone: string; email: string };
+  }) => {
+    await plotsApi.update(plotId, {
+      status: data.status,
+      deceased: data.deceased ? { ...data.deceased, quote: null } : undefined,
+      nextOfKin: data.nextOfKin,
+    });
+    // Refresh data
+    const plotDtos = await plotsApi.getAll();
+    setBasePlots(convertPlots(plotDtos));
+  }, []);
+
   // ── Loading / Error states ──
   if (dataLoading) {
     return (
@@ -246,12 +299,10 @@ export default function GisPage() {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex flex-1 min-h-0">
       {/* Map area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Canvas container — no top toolbar, everything is overlay */}
-        <div ref={containerRef} className="flex-1 relative overflow-hidden bg-[#2D4A3E]">
-          {/* Konva canvas */}
+      <div className="flex-1 relative bg-[#2D4A3E] min-w-0" ref={containerRef}>
+        <div className="absolute inset-0 overflow-hidden">
           <GisCanvas
             plots={filteredPlots}
             zones={zones}
@@ -265,6 +316,7 @@ export default function GisPage() {
             onPlotSelect={handlePlotSelect}
             onWheel={handleWheel}
             onDragEnd={setPosition}
+            onEmptyCellClick={handleEmptyCellClick}
           />
 
           {/* Search + Filter pills overlay (top-left) */}
@@ -347,8 +399,12 @@ export default function GisPage() {
         plot={selectedPlot}
         isOpen={!!selectedPlot}
         userRole={userRole}
+        mode={mode}
         onClose={deselectAll}
         onLocate={panToPlot}
+        onDeletePlot={handleDeletePlot}
+        onChangeStatus={handleChangeStatus}
+        onSavePlotInfo={handleSavePlotInfo}
       />
     </div>
   );

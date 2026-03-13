@@ -19,6 +19,7 @@ interface Props {
   onPlotSelect: (plot: Plot) => void;
   onWheel: (e: any) => void;
   onDragEnd: (pos: { x: number; y: number }) => void;
+  onEmptyCellClick?: (zone: string, row: number, col: number) => void;
 }
 
 function plotPosition(plot: Plot, zone: Zone) {
@@ -274,10 +275,12 @@ function GisCanvasInner({
   zoom,
   position,
   selectedPlotId,
+  mode,
   showHeatmap,
   onPlotSelect,
   onWheel,
   onDragEnd,
+  onEmptyCellClick,
 }: Props) {
   const stageRef = useRef<any>(null);
 
@@ -520,6 +523,40 @@ function GisCanvasInner({
           })
         )}
       </Layer>
+
+      {/* ══════ EDIT MODE — empty cell grid ══════ */}
+      {mode === "edit" && onEmptyCellClick && (
+        <Layer>
+          {zones.map((zone) => {
+            const occupied = new Set((plotsByZone[zone.id] || []).map(p => `${p.row}-${p.col}`));
+            return Array.from({ length: zone.rows }).flatMap((_, r) =>
+              Array.from({ length: zone.cols }).map((_, c) => {
+                if (occupied.has(`${r}-${c}`)) return null;
+                const x = zone.offsetX + c * (CELL_W + CELL_GAP);
+                const y = zone.offsetY + r * (CELL_H + CELL_GAP);
+                return (
+                  <Group key={`empty-${zone.id}-${r}-${c}`}>
+                    <Rect
+                      x={x} y={y} width={CELL_W} height={CELL_H}
+                      fill="#FFFFFF" opacity={0.08}
+                      stroke="#7ED4A6" strokeWidth={1.5}
+                      cornerRadius={6} dash={[6, 4]}
+                      onClick={() => onEmptyCellClick(zone.id, r, c)}
+                      onTap={() => onEmptyCellClick(zone.id, r, c)}
+                    />
+                    <Text
+                      x={x} y={y} width={CELL_W} height={CELL_H}
+                      text="+" fontSize={20} fill="#7ED4A6"
+                      align="center" verticalAlign="middle"
+                      listening={false}
+                    />
+                  </Group>
+                );
+              })
+            );
+          })}
+        </Layer>
+      )}
 
       {/* ══════ HEATMAP OVERLAY ══════ */}
       {showHeatmap && (

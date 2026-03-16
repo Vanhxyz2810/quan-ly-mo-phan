@@ -53,12 +53,14 @@ public class EmailService : IEmailService
             using var client = new SmtpClient(host, port)
             {
                 EnableSsl = true,
-                Credentials = new NetworkCredential(user, password)
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(user, password),
+                DeliveryFormat = SmtpDeliveryFormat.International
             };
 
             var message = new MailMessage(from, toEmail, subject, body)
             {
-                IsBodyHtml = false
+                IsBodyHtml = true
             };
 
             await client.SendMailAsync(message);

@@ -4,15 +4,14 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${SA_PASSWORD:-CemeteryIQ@2026!}
-    ports:
-      - "1433:1433"
     volumes:
       - sqldata:/var/opt/mssql
     healthcheck:
-      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$SA_PASSWORD" -C -Q "SELECT 1" || exit 1
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" || exit 1
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 30s
 
   api:
     build: ./api
@@ -24,6 +23,16 @@ services:
       Jwt__Issuer: CemeteryIQ
       Jwt__Audience: CemeteryIQ-Client
       Cors__Origins__0: ${CORS_ORIGIN:-http://localhost:3000}
+      VNPay__ReturnUrl: ${CORS_ORIGIN:-http://localhost:3000}/payment/result
+      MoMo__RedirectUrl: ${CORS_ORIGIN:-http://localhost:3000}/payment/momo-result
+      MoMo__IpnUrl: ${API_URL:-http://localhost:5154}/api/payment/momo/ipn
+      App__PublicBaseUrl: ${CORS_ORIGIN:-http://localhost:3000}
+      Smtp__Enabled: "true"
+      Smtp__Host: "smtp-relay.brevo.com"
+      Smtp__Port: "587"
+      Smtp__User: ${SMTP_USER:-vanhlegend2k6@gmail.com}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__From: ${SMTP_FROM:-vanhlegend2k6@gmail.com}
       ASPNETCORE_ENVIRONMENT: Production
     depends_on:
       db:

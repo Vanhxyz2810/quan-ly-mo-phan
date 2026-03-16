@@ -61,8 +61,7 @@ public class EmailService : IEmailService
             {
                 EnableSsl = true,
                 UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(user, password),
-                DeliveryFormat = SmtpDeliveryFormat.International
+                Credentials = new NetworkCredential(user, password)
             };
 
             var message = new MailMessage(from, toEmail, subject, body)

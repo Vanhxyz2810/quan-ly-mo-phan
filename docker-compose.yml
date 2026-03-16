@@ -1,0 +1,43 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD:-CemeteryIQ@2026!}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$SA_PASSWORD" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    ports:
+      - "5154:5154"
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=db;Database=CemeteryIQ;User Id=sa;Password=${SA_PASSWORD:-CemeteryIQ@2026!};TrustServerCertificate=True;MultipleActiveResultSets=true"
+      Jwt__Key: ${JWT_KEY:-CemeteryIQ-Super-Secret-Key-2026-Do-Not-Share!}
+      Jwt__Issuer: CemeteryIQ
+      Jwt__Audience: CemeteryIQ-Client
+      Cors__Origins__0: ${CORS_ORIGIN:-http://localhost:3000}
+      ASPNETCORE_ENVIRONMENT: Production
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_URL: ${API_URL:-http://localhost:5154}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  sqldata:

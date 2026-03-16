@@ -1,5 +1,6 @@
 using System.Text;
 using CemeteryIQ.Api.Middleware;
+using CemeteryIQ.Api.Services;
 using CemeteryIQ.Core.Entities;
 using CemeteryIQ.Core.Interfaces;
 using CemeteryIQ.Infrastructure.Data;
@@ -15,6 +16,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── HttpClient ──
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("AiChat", c => c.Timeout = TimeSpan.FromSeconds(60));
+builder.Services.AddScoped<AiChatService>();
 
 // ── Database ──
 builder.Services.AddDbContext<AppDbContext>(options =>

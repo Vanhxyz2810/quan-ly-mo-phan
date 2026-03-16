@@ -42,6 +42,13 @@ public class EmailService : IEmailService
             return;
         }
 
+        // Skip non-ASCII emails (seed data has Vietnamese names as emails)
+        if (toEmail.Any(c => c > 127))
+        {
+            _logger.LogWarning("[EMAIL-SKIP] Non-ASCII email address: {Email}", toEmail);
+            return;
+        }
+
         try
         {
             var host = _config["Smtp:Host"] ?? "smtp.gmail.com";

@@ -27,12 +27,10 @@ services:
       MoMo__RedirectUrl: ${CORS_ORIGIN:-http://localhost:3000}/payment/momo-result
       MoMo__IpnUrl: ${API_URL:-http://localhost:5154}/api/payment/momo/ipn
       App__PublicBaseUrl: ${CORS_ORIGIN:-http://localhost:3000}
-      Smtp__Enabled: "true"
-      Smtp__Host: "smtp-relay.brevo.com"
-      Smtp__Port: "587"
-      Smtp__User: ${SMTP_USER:-vanhlegend2k6@gmail.com}
-      Smtp__Password: ${SMTP_PASSWORD:-}
-      Smtp__From: ${SMTP_FROM:-vanhlegend2k6@gmail.com}
+      Brevo__Enabled: "true"
+      Brevo__ApiKey: ${BREVO_API_KEY:-}
+      Brevo__SenderEmail: ${BREVO_SENDER:-vanhlegend2k6@gmail.com}
+      Brevo__SenderName: "An Nghỉ Viên"
       ASPNETCORE_ENVIRONMENT: Production
     depends_on:
       db:

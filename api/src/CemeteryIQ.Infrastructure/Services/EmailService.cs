@@ -19,7 +19,7 @@ public class EmailService : IEmailService
 
     public async Task SendMaintenanceReminderAsync(string toEmail, string toName, string plotId, string deceasedName, int daysLeft)
     {
-        var enabled = _config.GetValue<bool>("Brevo:Enabled");
+        var enabled = _config.GetValue<bool>("Smtp:Enabled");
         var subject = $"[An Nghỉ Viên] Nhắc nhở: Phí duy tu mộ phần {plotId} sắp hết hạn";
         var htmlBody = $"""
             <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
@@ -67,16 +67,18 @@ public class EmailService : IEmailService
 
         try
         {
-            var smtpLogin = _config["Brevo:SmtpLogin"] ?? "";
-            var smtpKey = _config["Brevo:SmtpKey"] ?? "";
-            var senderEmail = _config["Brevo:SenderEmail"] ?? "noreply@cemeteryiq.vn";
-            var senderName = _config["Brevo:SenderName"] ?? "An Nghỉ Viên";
+            var smtpHost = _config["Smtp:Host"] ?? "smtp.gmail.com";
+            var smtpPort = _config.GetValue<int>("Smtp:Port", 587);
+            var smtpUser = _config["Smtp:User"] ?? "";
+            var smtpPass = _config["Smtp:Password"] ?? "";
+            var senderEmail = _config["Smtp:From"] ?? smtpUser;
+            var senderName = _config["Smtp:SenderName"] ?? "An Nghỉ Viên";
 
-            using var client = new SmtpClient("smtp-relay.brevo.com", 587)
+            using var client = new SmtpClient(smtpHost, smtpPort)
             {
                 EnableSsl = true,
                 UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(smtpLogin, smtpKey)
+                Credentials = new NetworkCredential(smtpUser, smtpPass)
             };
 
             var from = new MailAddress(senderEmail, senderName);

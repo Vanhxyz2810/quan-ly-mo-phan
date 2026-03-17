@@ -388,4 +388,9 @@ export const renewalApi = {
         body: JSON.stringify({ package: pkg }),
       }
     ),
+  testEmail: (email: string, name?: string) =>
+    fetchApi<{ message: string }>(`/api/maintenance/test-email`, {
+      method: "POST",
+      body: JSON.stringify({ email, name }),
+    }),
 };

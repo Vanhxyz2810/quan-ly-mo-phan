@@ -1,5 +1,6 @@
 using CemeteryIQ.Core.DTOs;
 using CemeteryIQ.Core.Entities;
+using CemeteryIQ.Core.Interfaces;
 using CemeteryIQ.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,8 +14,13 @@ namespace CemeteryIQ.Api.Controllers;
 public class MaintenanceController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IEmailService _email;
 
-    public MaintenanceController(AppDbContext db) => _db = db;
+    public MaintenanceController(AppDbContext db, IEmailService email)
+    {
+        _db = db;
+        _email = email;
+    }
 
     /// <summary>
     /// Lấy danh sách phí duy tu (có filter theo trạng thái)
@@ -76,6 +82,23 @@ public class MaintenanceController : ControllerBase
         await _db.SaveChangesAsync();
         return Ok(new { message = "Gia hạn thành công", expiryDate = plan.ExpiryDate, daysLeft = plan.DaysLeft });
     }
+    /// <summary>
+    /// [Demo] Gửi email test nhắc nhở bảo trì tới địa chỉ email chỉ định
+    /// </summary>
+    [HttpPost("test-email")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> TestEmail([FromBody] TestEmailRequest req)
+    {
+        await _email.SendMaintenanceReminderAsync(
+            req.Email,
+            req.Name ?? "Quý khách",
+            "DEMO-01",
+            "Nguyễn Văn A",
+            15
+        );
+        return Ok(new { message = $"Email test đã gửi tới {req.Email}" });
+    }
 }
 
 public record RenewRequest(string Package);
+public record TestEmailRequest(string Email, string? Name);

@@ -45,6 +45,8 @@ export default function FinancePage() {
   const [selectedPkg, setSelectedPkg] = useState("1 năm");
   const [renewing, setRenewing] = useState(false);
   const [toast, setToast] = useState("");
+  const [testEmail, setTestEmail] = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -128,6 +130,36 @@ export default function FinancePage() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Test Email */}
+        <div className="flex items-center gap-2 mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <span className="text-sm font-medium text-amber-800 whitespace-nowrap">📧 Demo gửi email nhắc nhở:</span>
+          <input
+            type="email"
+            placeholder="Nhập email nhận test..."
+            value={testEmail}
+            onChange={e => setTestEmail(e.target.value)}
+            className="flex-1 px-3 py-1.5 border border-amber-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          />
+          <button
+            disabled={!testEmail || sendingTest}
+            onClick={async () => {
+              setSendingTest(true);
+              try {
+                await renewalApi.testEmail(testEmail);
+                showToast(`✅ Email đã gửi tới ${testEmail}`);
+                setTestEmail("");
+              } catch {
+                showToast("❌ Gửi email thất bại");
+              } finally {
+                setSendingTest(false);
+              }
+            }}
+            className="px-4 py-1.5 bg-amber-600 text-white rounded text-sm font-medium hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          >
+            {sendingTest ? "Đang gửi..." : "Gửi test"}
+          </button>
         </div>
 
         {/* Filter */}

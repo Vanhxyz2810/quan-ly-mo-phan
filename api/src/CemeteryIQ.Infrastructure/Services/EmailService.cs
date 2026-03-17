@@ -1,7 +1,8 @@
 using CemeteryIQ.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Net.Http.Json;
+using System.Net;
+using System.Net.Mail;
 
 namespace CemeteryIQ.Infrastructure.Services;
 
@@ -9,13 +10,11 @@ public class EmailService : IEmailService
 {
     private readonly IConfiguration _config;
     private readonly ILogger<EmailService> _logger;
-    private readonly IHttpClientFactory _httpClientFactory;
 
-    public EmailService(IConfiguration config, ILogger<EmailService> logger, IHttpClientFactory httpClientFactory)
+    public EmailService(IConfiguration config, ILogger<EmailService> logger)
     {
         _config = config;
         _logger = logger;
-        _httpClientFactory = httpClientFactory;
     }
 
     public async Task SendMaintenanceReminderAsync(string toEmail, string toName, string plotId, string deceasedName, int daysLeft)
@@ -39,7 +38,7 @@ public class EmailService : IEmailService
                     <p style="text-align: center; margin: 24px 0;">
                         <a href="{_config["App:PublicBaseUrl"] ?? "https://annghivien.vanhxyz.dev"}/login"
                            style="background: #B8860B; color: white; padding: 12px 32px; text-decoration: none; border-radius: 6px; font-weight: 600;">
-                            Đăng nhập & Gia hạn
+                            Đăng nhập &amp; Gia hạn
                         </a>
                     </p>
                     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
@@ -68,32 +67,28 @@ public class EmailService : IEmailService
 
         try
         {
-            var apiKey = _config["Brevo:ApiKey"] ?? "";
+            var smtpLogin = _config["Brevo:SmtpLogin"] ?? "";
+            var smtpKey = _config["Brevo:SmtpKey"] ?? "";
             var senderEmail = _config["Brevo:SenderEmail"] ?? "noreply@cemeteryiq.vn";
             var senderName = _config["Brevo:SenderName"] ?? "An Nghỉ Viên";
 
-            using var client = _httpClientFactory.CreateClient();
-            client.DefaultRequestHeaders.Add("api-key", apiKey);
-
-            var payload = new
+            using var client = new SmtpClient("smtp-relay.brevo.com", 587)
             {
-                sender = new { name = senderName, email = senderEmail },
-                to = new[] { new { email = toEmail, name = toName } },
-                subject,
-                htmlContent = htmlBody
+                EnableSsl = true,
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(smtpLogin, smtpKey)
             };
 
-            var response = await client.PostAsJsonAsync("https://api.brevo.com/v3/smtp/email", payload);
-            var responseBody = await response.Content.ReadAsStringAsync();
+            var from = new MailAddress(senderEmail, senderName);
+            var message = new MailMessage(from, new MailAddress(toEmail, toName))
+            {
+                Subject = subject,
+                Body = htmlBody,
+                IsBodyHtml = true
+            };
 
-            if (response.IsSuccessStatusCode)
-            {
-                _logger.LogInformation("[EMAIL-SENT] To: {Email} | PlotId: {PlotId} | DaysLeft: {Days}", toEmail, plotId, daysLeft);
-            }
-            else
-            {
-                _logger.LogError("[EMAIL-FAIL] To: {Email} | Status: {Status} | Response: {Body}", toEmail, response.StatusCode, responseBody);
-            }
+            await client.SendMailAsync(message);
+            _logger.LogInformation("[EMAIL-SENT] To: {Email} | PlotId: {PlotId} | DaysLeft: {Days}", toEmail, plotId, daysLeft);
         }
         catch (Exception ex)
         {
